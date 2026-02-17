@@ -1,13 +1,9 @@
 -- =====================================================
--- 🔥 GLOBAL CLEANUP (RE-EXEC SAFE)
+-- 🧹 CLEANUP (RE-EXEC SAFE)
 -- =====================================================
-getgenv().EVENT_SCRIPT_RUNNING = false
-task.wait()
-
 pcall(function()
-    local pg = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-    for _, v in ipairs(pg:GetChildren()) do
-        if v:IsA("ScreenGui") and v.Name == "EventShardUI" then
+    for _, v in ipairs(game.Players.LocalPlayer.PlayerGui:GetChildren()) do
+        if v.Name == "LuxStyleUI" then
             v:Destroy()
         end
     end
@@ -16,202 +12,104 @@ end)
 -- =====================================================
 -- 👤 SERVICES
 -- =====================================================
+local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
-getgenv().EVENT_SCRIPT_RUNNING = true
-
 -- =====================================================
--- ⚙️ SETTINGS
--- =====================================================
-local WALK_SPEED = 120
-local WALK_TIMEOUT = 0.15
-local STAND_DELAY = 0.25
-
--- =====================================================
--- 📦 SCAN SHARDS SPAWNERS
--- =====================================================
-local function scanSpawners()
-    local positions = {}
-    local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("ShardsSpawners")
-    for _, obj in ipairs(folder:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            table.insert(positions, obj.Position)
-        end
-    end
-    return positions
-end
-
-local POSITIONS = scanSpawners()
-
-local function getNearest(pos)
-    local idx, dist = nil, math.huge
-    for i, p in ipairs(POSITIONS) do
-        local d = (p - pos).Magnitude
-        if d < dist then
-            dist = d
-            idx = i
-        end
-    end
-    if idx then
-        return table.remove(POSITIONS, idx)
-    end
-end
-
--- =====================================================
--- 🧱 NOCLIP
--- =====================================================
-local noclipConn
-local function enableNoclip()
-    noclipConn = RunService.Stepped:Connect(function()
-        if not getgenv().EVENT_SCRIPT_RUNNING then return end
-        local char = player.Character
-        if not char then return end
-        for _, p in ipairs(char:GetDescendants()) do
-            if p:IsA("BasePart") then
-                p.CanCollide = false
-            end
-        end
-    end)
-end
-
-local function disableNoclip()
-    if noclipConn then
-        noclipConn:Disconnect()
-        noclipConn = nil
-    end
-end
-
--- =====================================================
--- 🔁 STATES
--- =====================================================
-local farming = false
-local upgrading = false
-local originalSpeed = 16
-
--- =====================================================
--- 🚶‍♂️ AUTO SHARDS FARM LOOP
--- =====================================================
-task.spawn(function()
-    while getgenv().EVENT_SCRIPT_RUNNING do
-        if farming then
-            if #POSITIONS == 0 then
-                POSITIONS = scanSpawners()
-            end
-
-            local char = player.Character
-            local hum = char and char:FindFirstChild("Humanoid")
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-            if hum and hrp then
-                local target = getNearest(hrp.Position)
-                if target then
-                    hum:MoveTo(target)
-                    task.wait(WALK_TIMEOUT)
-                    task.wait(STAND_DELAY)
-                end
-            end
-        end
-        task.wait(0.05)
-    end
-end)
-
--- =====================================================
--- 🔼 EVENT SHARDS UPGRADE LOOP
--- =====================================================
-local UpgradeRemote = ReplicatedStorage
-    :WaitForChild("Packages")
-    :WaitForChild("Knit")
-    :WaitForChild("Services")
-    :WaitForChild("RemotesService")
-    :WaitForChild("RE")
-    :WaitForChild("MainRemote")
-
-local UpgradeList = {
-    "Event Shards 2",
-    "Event Luck",
-    "Event Bulk",
-    "Event Crystals",
-    "Event Crystal Chance"
-}
-
-task.spawn(function()
-    while getgenv().EVENT_SCRIPT_RUNNING do
-        if upgrading then
-            for _, up in ipairs(UpgradeList) do
-                if not upgrading or not getgenv().EVENT_SCRIPT_RUNNING then break end
-                pcall(function()
-                    UpgradeRemote:FireServer("Upgrade", "Event Shards", up)
-                end)
-                task.wait(0.35)
-            end
-        end
-        task.wait(0.2)
-    end
-end)
-
--- =====================================================
--- 🖥️ UI (EIGEN, STABIL)
+-- 🖥️ GUI
 -- =====================================================
 local gui = Instance.new("ScreenGui")
-gui.Name = "EventShardUI"
+gui.Name = "LuxStyleUI"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = player.PlayerGui
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 320, 0, 170)
-frame.Position = UDim2.new(0.5, -160, 0.5, -85)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.BorderSizePixel = 0
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
+-- Main Frame
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 520, 0, 340)
+main.Position = UDim2.new(0.5, -260, 0.5, -170)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.BorderSizePixel = 0
+main.Visible = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,35)
+-- Sidebar
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.new(0, 140, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(15,15,15)
+sidebar.BorderSizePixel = 0
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 10)
+
+-- Title
+local title = Instance.new("TextLabel", sidebar)
+title.Size = UDim2.new(1,0,0,40)
 title.BackgroundTransparency = 1
-title.Text = "500k Event Script"
+title.Text = "500k Event"
 title.Font = Enum.Font.GothamBold
-title.TextScaled = true
 title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
 
-local function toggleButton(text, y, callback)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0,300,0,45)
-    btn.Position = UDim2.new(0,10,0,y)
-    btn.Text = "START "..text
-    btn.Font = Enum.Font.GothamBold
+-- Content Area
+local content = Instance.new("Frame", main)
+content.Position = UDim2.new(0, 150, 0, 10)
+content.Size = UDim2.new(1, -160, 1, -20)
+content.BackgroundTransparency = 1
+
+-- =====================================================
+-- 🔁 TAB SYSTEM
+-- =====================================================
+local tabs = {}
+
+local function createTab(name)
+    local btn = Instance.new("TextButton", sidebar)
+    btn.Size = UDim2.new(1, -10, 0, 36)
+    btn.Position = UDim2.new(0, 5, 0, 40 + (#tabs * 40))
+    btn.Text = name
+    btn.Font = Enum.Font.Gotham
     btn.TextScaled = true
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.BackgroundColor3 = Color3.fromRGB(60,200,60)
+    btn.TextColor3 = Color3.fromRGB(200,200,200)
+    btn.BackgroundColor3 = Color3.fromRGB(25,25,25)
     btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 
-    local state = false
+    local frame = Instance.new("Frame", content)
+    frame.Size = UDim2.new(1,0,1,0)
+    frame.Visible = false
+    frame.BackgroundTransparency = 1
+
     btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = (state and "STOP " or "START ") .. text
-        btn.BackgroundColor3 = state and Color3.fromRGB(200,60,60) or Color3.fromRGB(60,200,60)
-        callback(state)
+        for _, t in pairs(tabs) do
+            t.frame.Visible = false
+        end
+        frame.Visible = true
     end)
+
+    table.insert(tabs, {button = btn, frame = frame})
+    if #tabs == 1 then frame.Visible = true end
+
+    return frame
 end
 
-toggleButton("SHARDS FARM", 45, function(state)
-    farming = state
-    local char = player.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    if hum then
-        if state then
-            originalSpeed = hum.WalkSpeed
-            hum.WalkSpeed = WALK_SPEED
-            enableNoclip()
-        else
-            hum.WalkSpeed = originalSpeed
-            disableNoclip()
-        end
+-- =====================================================
+-- ⌨️ LEFT ALT TOGGLE
+-- =====================================================
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.LeftAlt then
+        main.Visible = not main.Visible
     end
 end)
 
-toggleButton("AUTO UPGRADE", 100, function(state)
-    upgrading = state
-end)
+-- =====================================================
+-- 📂 TABS (EXAMPLE)
+-- =====================================================
+local eventTab = createTab("500k Event")
+local creditsTab = createTab("Credits")
+
+local label = Instance.new("TextLabel", eventTab)
+label.Text = "Event Automation kommt hier rein"
+label.Size = UDim2.new(1,0,0,30)
+label.TextColor3 = Color3.new(1,1,1)
+label.BackgroundTransparency = 1
+label.Font = Enum.Font.Gotham
+label.TextScaled = true
