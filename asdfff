@@ -151,9 +151,9 @@ btns:Button("Get max level", function()
 DiscordLib:Notification("Notification", "Max level!", "Okay!")
 end)
 
-local tgls = serv:Channel("Toggles")
+local tgls = serv:Channel("500k Event")
 
-tgls:Toggle("Auto-Farm", false, function(bool)
+tgls:Toggle("Farm Shards", false, function(bool)
 	running = bool
 
 	local char = player.Character
