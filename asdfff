@@ -1,5 +1,5 @@
 -- =====================================================
--- 🧹 UI CLEANUP (RE-EXECUTE FIX)
+-- 🧹 UI CLEANUP (RE-EXECUTE SAFE)
 -- =====================================================
 pcall(function()
 	for _, gui in ipairs(game.CoreGui:GetChildren()) do
@@ -21,21 +21,15 @@ local Luxtl = loadstring(game:HttpGet(
 
 local Window = Luxtl.CreateWindow("500k Event Script", 6105620301)
 
--- =====================================================
--- 📑 TABS
--- =====================================================
 local eventTab   = Window:Tab("500k Event", 6087485864)
 local creditsTab = Window:Tab("Credits", 6087485864)
 
--- =====================================================
--- 📌 CREDITS
--- =====================================================
-local cr = creditsTab:Section("Credits")
-cr:Label("Script: You")
-cr:Label("UI: Luxware")
+creditsTab:Section("Credits")
+	:Label("Script: You")
+	:Label("UI: Luxware")
 
 -- =====================================================
--- 👤 PLAYER & SERVICES
+-- 👤 SERVICES
 -- =====================================================
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -62,7 +56,7 @@ local function scanSpawners()
 		end
 	end
 
-	print("💎 Shards Spawner:", #positions)
+	print("💎 Shards Spawner gefunden:", #positions)
 	return positions
 end
 
@@ -73,7 +67,6 @@ local POSITIONS = scanSpawners()
 -- =====================================================
 local function getNearest(pos)
 	local index, dist = nil, math.huge
-
 	for i, p in ipairs(POSITIONS) do
 		local d = (p - pos).Magnitude
 		if d < dist then
@@ -81,7 +74,6 @@ local function getNearest(pos)
 			index = i
 		end
 	end
-
 	if index then
 		return table.remove(POSITIONS, index)
 	end
@@ -115,6 +107,7 @@ end
 -- =====================================================
 local farming = false
 local upgrading = false
+local upgradeThread
 local originalSpeed = 16
 
 -- =====================================================
@@ -157,7 +150,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🔼 EVENT SHARDS UPGRADE
+-- 🔼 EVENT SHARDS UPGRADE (FIXED)
 -- =====================================================
 local UpgradeRemote = ReplicatedStorage
 	:WaitForChild("Packages")
@@ -167,9 +160,11 @@ local UpgradeRemote = ReplicatedStorage
 	:WaitForChild("RE")
 	:WaitForChild("MainRemote")
 
-task.spawn(function()
-	while true do
-		if upgrading then
+local function startUpgrade()
+	if upgradeThread then return end
+
+	upgradeThread = task.spawn(function()
+		while upgrading do
 			pcall(function()
 				UpgradeRemote:FireServer(
 					"Upgrade",
@@ -177,12 +172,15 @@ task.spawn(function()
 					"Event Shards"
 				)
 			end)
-			task.wait(0.35)
-		else
-			task.wait(0.2)
+			task.wait(0.4) -- SERVER SAFE DELAY
 		end
-	end
-end)
+		upgradeThread = nil
+	end)
+end
+
+local function stopUpgrade()
+	upgrading = false
+end
 
 -- =====================================================
 -- 🖥️ UI CONTROLS
@@ -209,4 +207,9 @@ end)
 
 sec:Toggle("Auto Upgrade Event Shards", function(state)
 	upgrading = state
+	if state then
+		startUpgrade()
+	else
+		stopUpgrade()
+	end
 end)
