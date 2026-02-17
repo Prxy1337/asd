@@ -1,228 +1,37 @@
--- =====================================================
--- 👤 PLAYER
--- =====================================================
-local player = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
 
--- =====================================================
--- ⚙️ EINSTELLUNGEN
--- =====================================================
-local WALK_SPEED = 120
-local WALK_TIMEOUT = 0.15
-local STAND_DELAY = 0.25
+local Luxt = Luxtl.CreateWindow("Wisteria GUI", 6105620301)
 
--- =====================================================
--- 📦 SPAWNER SCANNEN (SHARDS)
--- =====================================================
-local function scanSpawners()
-	local positions = {}
-	local content = workspace:WaitForChild("__GAME_CONTENT")
-	local folder = content:WaitForChild("ShardsSpawners")
+local mainTab = Luxt:Tab("General", 6087485864)
+local teleportsTab = Luxt:Tab("500k Event")
+local autoQTab = Luxt:Tab("XMAS")
+local combatTab = Luxt:Tab("Combat")
+local creditsTab = Luxt:Tab("Credits")
+local cf = creditsTab:Section("Main Credits")
+cf:Credit("Luxt: Main Coding")
+local cf1 = creditsTab:Section("UI Credits")
+cf1:Credit("xHeptc: UI Library")
+local cf2 = creditsTab:Section("Helping Credits")
+cf2:Credit("Salad: Helping")
 
-	for _, obj in ipairs(folder:GetDescendants()) do
-		if obj:IsA("BasePart") then
-			table.insert(positions, obj.Position)
-		end
-	end
-
-	print("💎 Shards Spawner gefunden:", #positions)
-	return positions
-end
-
-local POSITIONS = scanSpawners()
-
--- =====================================================
--- 🔍 NÄCHSTER SPAWNER
--- =====================================================
-local function getNearestSpawner(pos)
-	local nearestIndex
-	local shortest = math.huge
-
-	for i, spawnerPos in ipairs(POSITIONS) do
-		local dist = (spawnerPos - pos).Magnitude
-		if dist < shortest then
-			shortest = dist
-			nearestIndex = i
-		end
-	end
-
-	if nearestIndex then
-		return table.remove(POSITIONS, nearestIndex)
-	end
-end
-
--- =====================================================
--- 🧱 NOCLIP
--- =====================================================
-local noclipConn
-local function enableNoclip()
-	noclipConn = RunService.Stepped:Connect(function()
-		local char = player.Character
-		if not char then return end
-		for _, p in ipairs(char:GetDescendants()) do
-			if p:IsA("BasePart") then
-				p.CanCollide = false
-			end
-		end
-	end)
-end
-
-local function disableNoclip()
-	if noclipConn then
-		noclipConn:Disconnect()
-		noclipConn = nil
-	end
-end
-
--- =====================================================
--- 🔁 STATUS
--- =====================================================
-local running = false
-local originalSpeed = 16
-
--- =====================================================
--- 🚶‍♂️ FARM LOOP (dauerhaft, reagiert auf Toggle)
--- =====================================================
-task.spawn(function()
-	while true do
-		if running then
-			if #POSITIONS == 0 then
-				POSITIONS = scanSpawners()
-			end
-
-			local char = player.Character or player.CharacterAdded:Wait()
-			local hum = char:WaitForChild("Humanoid")
-			local hrp = char:WaitForChild("HumanoidRootPart")
-
-			local target = getNearestSpawner(hrp.Position)
-			if target then
-				hum:MoveTo(target)
-
-				local reached = false
-				local conn
-				conn = hum.MoveToFinished:Connect(function()
-					reached = true
-					conn:Disconnect()
-				end)
-
-				local start = tick()
-				while not reached and tick() - start < WALK_TIMEOUT and running do
-					task.wait(0.05)
-				end
-
-				task.wait(STAND_DELAY)
-			end
-		end
-		task.wait(0.05)
-	end
+local Examples = Luxt:Tab("Examples")
+local ff = Examples:Section("All Examples")
+ff:Label("Willkommen")
+ff:Button("TextButton Text", function()
+    print("Clicked!")
 end)
-
-
-
-
-
-
-
-
-
-
-
-
-
---LIBARY
-
-
-
-local DiscordLib = loadstring(game:HttpGet"https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/discord%20lib.txt")()
-
-local win = DiscordLib:Window("discord library")
-
-local serv = win:Server("Preview", "")
-
-local btns = serv:Channel("Buttons")
-
-btns:Button("Kill all", function()
-DiscordLib:Notification("Notification", "Killed everyone!", "Okay!")
+ff:Toggle("Toggle Me!", function(isToggled)
+    print(isToggled) -- prints true or false
 end)
-
-btns:Seperator()
-
-btns:Button("Get max level", function()
-DiscordLib:Notification("Notification", "Max level!", "Okay!")
+ff:KeyBind("Print('Hey') on bind", Enum.KeyCode.R, function() --Enum.KeyCode.R is starting Key
+    print('Hey')
 end)
-
-local tgls = serv:Channel("500k Event")
-
-tgls:Toggle("Farm Shards", false, function(bool)
-	running = bool
-
-	local char = player.Character
-	if char then
-		local hum = char:FindFirstChild("Humanoid")
-		if hum then
-			if bool then
-				originalSpeed = hum.WalkSpeed
-				hum.WalkSpeed = WALK_SPEED
-				enableNoclip()
-				DiscordLib:Notification("Auto-Farm", "Shard Farm gestartet", "OK")
-			else
-				hum.WalkSpeed = originalSpeed
-				disableNoclip()
-				DiscordLib:Notification("Auto-Farm", "Shard Farm gestoppt", "OK")
-			end
-		end
-	end
+ff:TextBox("TextBox Info", "Epic PlaceHolder", function(getText)
+    print(getText) -- Prints whatever player types
 end)
-
-
-local sldrs = serv:Channel("Sliders")
-
-local sldr = sldrs:Slider("Slide me!", 0, 1000, 400, function(t)
-print(t)
+ff:Slider("WalkSpeed", 16, 503, function(currentValue)
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = currentValue 
 end)
-
-sldrs:Button("Change to 50", function()
-sldr:Change(50)
+ff:DropDown("Favorite Food?", {"Pizza", "Burger", "Sandwiches"}, function(food) -- food is chosen item
+    print(food)
 end)
-
-local drops = serv:Channel("Dropdowns")
-
-
-local drop = drops:Dropdown("Pick me!",{"Option 1","Option 2","Option 3","Option 4","Option 5"}, function(bool)
-print(bool)
-end)
-
-drops:Button("Clear", function()
-drop:Clear()
-end)
-
-drops:Button("Add option", function()
-drop:Add("Option")
-end)
-
-local clrs = serv:Channel("Colorpickers")
-
-clrs:Colorpicker("ESP Color", Color3.fromRGB(255,1,1), function(t)
-print(t)
-end)
-
-local textbs = serv:Channel("Textboxes")
-
-textbs:Textbox("Gun power", "Type here!", true, function(t)
-print(t)
-end)
-
-local lbls = serv:Channel("Labels")
-
-lbls:Label("This is just a label.")
-
-local bnds = serv:Channel("Binds")
-
-bnds:Bind("Kill bind", Enum.KeyCode.RightShift, function()
-print("Killed everyone!")
-end)
-
-serv:Channel("by dawid#7205")
-
-
-win:Server("Main", "http://www.roblox.com/asset/?id=6031075938")
