@@ -16,7 +16,7 @@ local Luxware = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
 ))()
 
-local WindowName = "500k Event Script v2" -- hier kannst du den Namen ändern
+local WindowName = "Penis Script" -- hier kannst du den Namen ändern
 local Window = Luxware.CreateWindow(WindowName, 6105620301)
 
 local EventTab = Window:Tab("500k Event", 6087485864)
