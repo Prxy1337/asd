@@ -1,9 +1,30 @@
 local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
 
-local Luxt = Luxtl.CreateWindow("Wisteria GUI", 6105620301)
+local Luxt = Luxtl.CreateWindow("Penis Script", 6105620301)
 
 local mainTab = Luxt:Tab("General", 6087485864)
 local teleportsTab = Luxt:Tab("500k Event")
+local eventSection = teleportsTab:Section("Event Shards")
+
+eventSection:Toggle("Auto Shards Farm", function(state)
+	running = state
+
+	local char = game.Players.LocalPlayer.Character
+	if not char then return end
+
+	local hum = char:FindFirstChild("Humanoid")
+	if not hum then return end
+
+	if state then
+		originalSpeed = hum.WalkSpeed
+		hum.WalkSpeed = WALK_SPEED
+		enableNoclip()
+	else
+		hum.WalkSpeed = originalSpeed
+		disableNoclip()
+	end
+end)
+
 local autoQTab = Luxt:Tab("XMAS")
 local combatTab = Luxt:Tab("Combat")
 local creditsTab = Luxt:Tab("Credits")
