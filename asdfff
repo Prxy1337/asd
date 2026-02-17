@@ -1,4 +1,20 @@
+-- =====================================================
+-- 🧹 ALTE UI LÖSCHEN (RE-EXECUTE FIX)
+-- =====================================================
+pcall(function()
+	for _, gui in ipairs(game.CoreGui:GetChildren()) do
+		if gui:IsA("ScreenGui") then
+			local n = gui.Name:lower()
+			if n:find("lux") or n:find("ware") or n:find("ui") then
+				gui:Destroy()
+			end
+		end
+	end
+end)
 
+-- =====================================================
+-- 📦 LUXWARE UI LADEN
+-- =====================================================
 local Luxtl = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
 ))()
@@ -6,18 +22,18 @@ local Luxtl = loadstring(game:HttpGet(
 local Luxt = Luxtl.CreateWindow("500k Event Script", 6105620301)
 
 -- =====================================================
--- 🗂️ TABS
+-- 📑 TABS
 -- =====================================================
-local mainTab   = Luxt:Tab("General")
-local eventTab  = Luxt:Tab("500k Event")
-local creditsTab = Luxt:Tab("Credits")
+local generalTab = Luxt:Tab("General", 6087485864)
+local eventTab   = Luxt:Tab("500k Event", 6087485864)
+local creditsTab = Luxt:Tab("Credits", 6087485864)
 
 -- =====================================================
--- 🧾 CREDITS
+-- 📌 CREDITS
 -- =====================================================
 local cr = creditsTab:Section("Credits")
-cr:Label("Script: You + ChatGPT")
-cr:Label("UI: Luxware")
+cr:Label("Script: You")
+cr:Label("UI: Luxware (xHeptc)")
 
 -- =====================================================
 -- 👤 PLAYER
@@ -26,14 +42,14 @@ local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
 -- =====================================================
--- ⚙️ SETTINGS (FIX)
+-- ⚙️ EINSTELLUNGEN
 -- =====================================================
-local WALK_SPEED   = 120
+local WALK_SPEED = 120
 local WALK_TIMEOUT = 0.15
-local STAND_DELAY  = 0.25
+local STAND_DELAY = 0.25
 
 -- =====================================================
--- 📦 SCAN SHARD SPAWNERS
+-- 📦 SHARDS SPAWNER SCAN
 -- =====================================================
 local function scanSpawners()
 	local positions = {}
@@ -41,13 +57,13 @@ local function scanSpawners()
 	local content = workspace:WaitForChild("__GAME_CONTENT")
 	local folder = content:WaitForChild("ShardsSpawners")
 
-	for _,obj in ipairs(folder:GetDescendants()) do
+	for _, obj in ipairs(folder:GetDescendants()) do
 		if obj:IsA("BasePart") then
 			table.insert(positions, obj.Position)
 		end
 	end
 
-	print("💎 Spawner gefunden:", #positions)
+	print("💎 Shards Spawner gefunden:", #positions)
 	return positions
 end
 
@@ -60,7 +76,7 @@ local function getNearestSpawner(pos)
 	local nearestIndex
 	local shortest = math.huge
 
-	for i,spawnerPos in ipairs(POSITIONS) do
+	for i, spawnerPos in ipairs(POSITIONS) do
 		local dist = (spawnerPos - pos).Magnitude
 		if dist < shortest then
 			shortest = dist
@@ -81,7 +97,7 @@ local function enableNoclip()
 	noclipConn = RunService.Stepped:Connect(function()
 		local char = player.Character
 		if not char then return end
-		for _,p in ipairs(char:GetDescendants()) do
+		for _, p in ipairs(char:GetDescendants()) do
 			if p:IsA("BasePart") then
 				p.CanCollide = false
 			end
@@ -103,7 +119,7 @@ local running = false
 local originalSpeed = 16
 
 -- =====================================================
--- 🚶 AUTO WALK LOOP
+-- 🚶‍♂️ AUTO-SHARDS LOOP
 -- =====================================================
 task.spawn(function()
 	while true do
@@ -112,27 +128,29 @@ task.spawn(function()
 				POSITIONS = scanSpawners()
 			end
 
-			local char = player.Character or player.CharacterAdded:Wait()
-			local hum = char:WaitForChild("Humanoid")
-			local hrp = char:WaitForChild("HumanoidRootPart")
+			local char = player.Character
+			local hum = char and char:FindFirstChild("Humanoid")
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 
-			local target = getNearestSpawner(hrp.Position)
-			if target then
-				hum:MoveTo(target)
+			if hum and hrp then
+				local target = getNearestSpawner(hrp.Position)
+				if target then
+					hum:MoveTo(target)
 
-				local reached = false
-				local conn
-				conn = hum.MoveToFinished:Connect(function()
-					reached = true
-					conn:Disconnect()
-				end)
+					local reached = false
+					local conn
+					conn = hum.MoveToFinished:Connect(function()
+						reached = true
+						conn:Disconnect()
+					end)
 
-				local start = tick()
-				while not reached and tick() - start < WALK_TIMEOUT and running do
-					task.wait(0.05)
+					local start = tick()
+					while not reached and tick() - start < WALK_TIMEOUT and running do
+						task.wait(0.05)
+					end
+
+					task.wait(STAND_DELAY)
 				end
-
-				task.wait(STAND_DELAY)
 			end
 		end
 		task.wait(0.05)
@@ -140,25 +158,26 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🎮 500k EVENT SECTION
+-- 🔘 TOGGLE (500k EVENT TAB)
 -- =====================================================
-local eventSection = eventTab:Section("Auto Shards Farm")
+local sec = eventTab:Section("Event Farming")
 
-eventSection:Toggle("Auto Shards", function(state)
+sec:Toggle("Auto Shards Farm", function(state)
 	running = state
 
 	local char = player.Character
-	if char then
-		local hum = char:FindFirstChild("Humanoid")
-		if hum then
-			if running then
-				originalSpeed = hum.WalkSpeed
-				hum.WalkSpeed = WALK_SPEED
-				enableNoclip()
-			else
-				hum.WalkSpeed = originalSpeed
-				disableNoclip()
-			end
+	local hum = char and char:FindFirstChild("Humanoid")
+
+	if hum then
+		if state then
+			originalSpeed = hum.WalkSpeed
+			hum.WalkSpeed = WALK_SPEED
+			enableNoclip()
+			print("▶ Auto Shards START")
+		else
+			hum.WalkSpeed = originalSpeed
+			disableNoclip()
+			print("⏹ Auto Shards STOP")
 		end
 	end
 end)
