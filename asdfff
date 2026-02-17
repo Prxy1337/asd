@@ -1,5 +1,5 @@
 -- =====================================================
--- 📚 LUXWARE UI
+-- 📚 LUXWARE UI (RESET BEI RE-EXECUTE)
 -- =====================================================
 pcall(function()
 	for _,v in pairs(game.CoreGui:GetChildren()) do
@@ -9,14 +9,17 @@ pcall(function()
 	end
 end)
 
-local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
+local Luxtl = loadstring(game:HttpGet(
+	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
+))()
+
 local Luxt = Luxtl.CreateWindow("500k Event Script", 6105620301)
 
 -- =====================================================
 -- 🗂️ TABS
 -- =====================================================
-local mainTab = Luxt:Tab("General")
-local eventTab = Luxt:Tab("500k Event")
+local mainTab   = Luxt:Tab("General")
+local eventTab  = Luxt:Tab("500k Event")
 local creditsTab = Luxt:Tab("Credits")
 
 -- =====================================================
@@ -33,11 +36,11 @@ local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
 -- =====================================================
--- ⚙️ SETTINGS
+-- ⚙️ SETTINGS (FIX)
 -- =====================================================
-local WALK_SPEED = 120
+local WALK_SPEED   = 120
 local WALK_TIMEOUT = 0.15
-local STAND_DELAY = 0.25
+local STAND_DELAY  = 0.25
 
 -- =====================================================
 -- 📦 SCAN SHARD SPAWNERS
@@ -61,7 +64,7 @@ end
 local POSITIONS = scanSpawners()
 
 -- =====================================================
--- 🔍 NEAREST SPAWNER
+-- 🔍 NÄCHSTER SPAWNER
 -- =====================================================
 local function getNearestSpawner(pos)
 	local nearestIndex
@@ -168,12 +171,4 @@ eventSection:Toggle("Auto Shards", function(state)
 			end
 		end
 	end
-end)
-
-eventSection:Slider("WalkSpeed", 50, 300, function(v)
-	WALK_SPEED = v
-end)
-
-eventSection:Button("Rescan Spawners", function()
-	POSITIONS = scanSpawners()
 end)
