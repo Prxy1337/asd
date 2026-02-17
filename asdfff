@@ -14,10 +14,143 @@ end)
 -- =====================================================
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
+getgenv().EVENT_SCRIPT_RUNNING = true
+
 -- =====================================================
--- 🖥️ GUI
+-- ⚙️ SETTINGS
+-- =====================================================
+local WALK_SPEED = 120
+local WALK_TIMEOUT = 0.15
+local STAND_DELAY = 0.25
+
+-- =====================================================
+-- 📦 SCAN SHARDS SPAWNERS
+-- =====================================================
+local function scanSpawners()
+    local positions = {}
+    local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("ShardsSpawners")
+    for _, obj in ipairs(folder:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            table.insert(positions, obj.Position)
+        end
+    end
+    return positions
+end
+
+local POSITIONS = scanSpawners()
+
+local function getNearest(pos)
+    local idx, dist = nil, math.huge
+    for i, p in ipairs(POSITIONS) do
+        local d = (p - pos).Magnitude
+        if d < dist then
+            dist = d
+            idx = i
+        end
+    end
+    if idx then
+        return table.remove(POSITIONS, idx)
+    end
+end
+
+-- =====================================================
+-- 🧱 NOCLIP
+-- =====================================================
+local noclipConn
+local function enableNoclip()
+    noclipConn = RunService.Stepped:Connect(function()
+        if not getgenv().EVENT_SCRIPT_RUNNING then return end
+        local char = player.Character
+        if not char then return end
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = false
+            end
+        end
+    end)
+end
+
+local function disableNoclip()
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+end
+
+-- =====================================================
+-- 🔁 STATES
+-- =====================================================
+local farming = false
+local upgrading = false
+local originalSpeed = 16
+
+-- =====================================================
+-- 🚶‍♂️ AUTO SHARDS FARM LOOP
+-- =====================================================
+task.spawn(function()
+    while getgenv().EVENT_SCRIPT_RUNNING do
+        if farming then
+            if #POSITIONS == 0 then
+                POSITIONS = scanSpawners()
+            end
+
+            local char = player.Character
+            local hum = char and char:FindFirstChild("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+            if hum and hrp then
+                local target = getNearest(hrp.Position)
+                if target then
+                    hum:MoveTo(target)
+                    task.wait(WALK_TIMEOUT)
+                    task.wait(STAND_DELAY)
+                end
+            end
+        end
+        task.wait(0.05)
+    end
+end)
+
+-- =====================================================
+-- 🔼 EVENT SHARDS UPGRADE LOOP
+-- =====================================================
+local UpgradeRemote = ReplicatedStorage
+    :WaitForChild("Packages")
+    :WaitForChild("Knit")
+    :WaitForChild("Services")
+    :WaitForChild("RemotesService")
+    :WaitForChild("RE")
+    :WaitForChild("MainRemote")
+
+local UpgradeList = {
+    "Event Shards 2",
+    "Event Luck",
+    "Event Bulk",
+    "Event Crystals",
+    "Event Crystal Chance"
+}
+
+task.spawn(function()
+    while getgenv().EVENT_SCRIPT_RUNNING do
+        if upgrading then
+            for _, up in ipairs(UpgradeList) do
+                if not upgrading or not getgenv().EVENT_SCRIPT_RUNNING then break end
+                pcall(function()
+                    UpgradeRemote:FireServer("Upgrade", "Event Shards", up)
+                end)
+                task.wait(0.35)
+            end
+        end
+        task.wait(0.2)
+    end
+end)
+
+-- =====================================================
+-- 🖥️ UI (LUXWARE STYLE)
 -- =====================================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "LuxStyleUI"
@@ -59,7 +192,6 @@ content.BackgroundTransparency = 1
 -- 🔁 TAB SYSTEM
 -- =====================================================
 local tabs = {}
-
 local function createTab(name)
     local btn = Instance.new("TextButton", sidebar)
     btn.Size = UDim2.new(1, -10, 0, 36)
@@ -90,8 +222,55 @@ local function createTab(name)
     return frame
 end
 
+local eventTab = createTab("500k Event")
+local creditsTab = createTab("Credits")
+
 -- =====================================================
--- ⌨️ LEFT ALT TOGGLE
+-- 🔘 TOGGLES IN EVENT TAB
+-- =====================================================
+local function addToggle(tab, name, callback, posY)
+    local btn = Instance.new("TextButton", tab)
+    btn.Size = UDim2.new(0, 300, 0, 45)
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.Text = "START "..name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(60,200,60)
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = (state and "STOP " or "START ")..name
+        btn.BackgroundColor3 = state and Color3.fromRGB(200,60,60) or Color3.fromRGB(60,200,60)
+        callback(state)
+    end)
+end
+
+addToggle(eventTab, "SHARDS FARM", function(state)
+    farming = state
+    local char = player.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    if hum then
+        if state then
+            originalSpeed = hum.WalkSpeed
+            hum.WalkSpeed = WALK_SPEED
+            enableNoclip()
+        else
+            hum.WalkSpeed = originalSpeed
+            disableNoclip()
+        end
+    end
+end, 45)
+
+addToggle(eventTab, "AUTO UPGRADE", function(state)
+    upgrading = state
+end, 100)
+
+-- =====================================================
+-- ⌨️ LEFT ALT TOGGLE UI
 -- =====================================================
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
@@ -101,15 +280,13 @@ UIS.InputBegan:Connect(function(input, gpe)
 end)
 
 -- =====================================================
--- 📂 TABS (EXAMPLE)
+-- CREDITS
 -- =====================================================
-local eventTab = createTab("500k Event")
-local creditsTab = createTab("Credits")
-
-local label = Instance.new("TextLabel", eventTab)
-label.Text = "Event Automation kommt hier rein"
-label.Size = UDim2.new(1,0,0,30)
-label.TextColor3 = Color3.new(1,1,1)
-label.BackgroundTransparency = 1
-label.Font = Enum.Font.Gotham
-label.TextScaled = true
+local creditLabel = Instance.new("TextLabel", creditsTab)
+creditLabel.Size = UDim2.new(1,0,0,30)
+creditLabel.Position = UDim2.new(0,0,0,10)
+creditLabel.Text = "Luxt: Main Code | xHeptc: UI Lib | Salad: Helping"
+creditLabel.TextColor3 = Color3.new(1,1,1)
+creditLabel.TextScaled = true
+creditLabel.BackgroundTransparency = 1
+creditLabel.Font = Enum.Font.Gotham
