@@ -3,10 +3,8 @@
 -- =====================================================
 pcall(function()
 	for _, gui in ipairs(game.CoreGui:GetChildren()) do
-		if gui:IsA("ScreenGui") then
-			if gui.Name:lower():find("lux") then
-				gui:Destroy()
-			end
+		if gui:IsA("ScreenGui") and gui.Name:lower():find("lux") then
+			gui:Destroy()
 		end
 	end
 end)
@@ -20,20 +18,12 @@ local Luxware = loadstring(game:HttpGet(
 
 local Window = Luxware.CreateWindow("500k Event Script", 6105620301)
 
--- =====================================================
--- 📑 TABS
--- =====================================================
 local EventTab = Window:Tab("500k Event", 6087485864)
 local CreditsTab = Window:Tab("Credits", 6087485864)
 
--- =====================================================
--- 📌 CREDITS
--- =====================================================
 local CreditsSection = CreditsTab:Section("Credits")
-if CreditsSection then
-	CreditsSection:Label("Script: You")
-	CreditsSection:Label("UI: Luxware")
-end
+CreditsSection:Label("Script: You")
+CreditsSection:Label("UI: Luxware")
 
 -- =====================================================
 -- 👤 SERVICES
@@ -51,28 +41,22 @@ local WALK_TIMEOUT = 0.15
 local STAND_DELAY = 0.25
 
 -- =====================================================
--- 📦 SHARDS SPAWNERS
+-- 📦 SCAN SHARDS SPAWNERS
 -- =====================================================
 local function scanSpawners()
 	local positions = {}
-	local content = workspace:WaitForChild("__GAME_CONTENT")
-	local folder = content:WaitForChild("ShardsSpawners")
+	local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("ShardsSpawners")
 
 	for _, obj in ipairs(folder:GetDescendants()) do
 		if obj:IsA("BasePart") then
 			table.insert(positions, obj.Position)
 		end
 	end
-
-	print("💎 Shards Spawner gefunden:", #positions)
 	return positions
 end
 
 local POSITIONS = scanSpawners()
 
--- =====================================================
--- 🔍 NEAREST SPAWNER
--- =====================================================
 local function getNearest(pos)
 	local index, dist = nil, math.huge
 	for i, p in ipairs(POSITIONS) do
@@ -119,7 +103,7 @@ local upgradeThread
 local originalSpeed = 16
 
 -- =====================================================
--- 🚶‍♂️ AUTO SHARDS FARM LOOP
+-- 🚶‍♂️ AUTO SHARDS FARM
 -- =====================================================
 task.spawn(function()
 	while true do
@@ -136,19 +120,7 @@ task.spawn(function()
 				local target = getNearest(hrp.Position)
 				if target then
 					hum:MoveTo(target)
-
-					local reached = false
-					local conn
-					conn = hum.MoveToFinished:Connect(function()
-						reached = true
-						conn:Disconnect()
-					end)
-
-					local start = tick()
-					while not reached and tick() - start < WALK_TIMEOUT and farming do
-						task.wait(0.05)
-					end
-
+					task.wait(WALK_TIMEOUT)
 					task.wait(STAND_DELAY)
 				end
 			end
@@ -158,7 +130,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🔼 EVENT SHARDS UPGRADE
+-- 🔼 EVENT SHARDS UPGRADE (ALLE 5 TYPES)
 -- =====================================================
 local UpgradeRemote = ReplicatedStorage
 	:WaitForChild("Packages")
@@ -168,54 +140,60 @@ local UpgradeRemote = ReplicatedStorage
 	:WaitForChild("RE")
 	:WaitForChild("MainRemote")
 
+local UpgradeList = {
+	"Event Shards 2",
+	"Event Luck",
+	"Event Bulk",
+	"Event Crystals",
+	"Event Crystal Chance"
+}
+
 local function startUpgrade()
 	if upgradeThread then return end
 	upgradeThread = task.spawn(function()
 		while upgrading do
-			pcall(function()
-				UpgradeRemote:FireServer("Upgrade", "Event Shards", "Event Shards")
-			end)
-			task.wait(0.4)
+			for _, upgradeName in ipairs(UpgradeList) do
+				if not upgrading then break end
+				pcall(function()
+					UpgradeRemote:FireServer(
+						"Upgrade",
+						"Event Shards",
+						upgradeName
+					)
+				end)
+				task.wait(0.35)
+			end
 		end
 		upgradeThread = nil
 	end)
 end
 
 -- =====================================================
--- 🖥️ EVENT TAB UI (FIXED)
+-- 🖥️ UI
 -- =====================================================
-if EventTab then
-	local EventSection = EventTab:Section("Event Automation")
-	if EventSection then
-		EventSection:Label("Auto Shards Farm & Upgrade")
+local EventSection = EventTab:Section("Event Automation")
+EventSection:Label("Auto Shards & Auto Upgrade")
 
-		EventSection:Toggle("Auto Shards Farm", function(state)
-			farming = state
+EventSection:Toggle("Auto Shards Farm", function(state)
+	farming = state
+	local char = player.Character
+	local hum = char and char:FindFirstChild("Humanoid")
 
-			local char = player.Character
-			local hum = char and char:FindFirstChild("Humanoid")
-
-			if hum then
-				if state then
-					originalSpeed = hum.WalkSpeed
-					hum.WalkSpeed = WALK_SPEED
-					enableNoclip()
-				else
-					hum.WalkSpeed = originalSpeed
-					disableNoclip()
-				end
-			end
-		end)
-
-		EventSection:Toggle("Auto Upgrade Event Shards", function(state)
-			upgrading = state
-			if state then
-				startUpgrade()
-			end
-		end)
-	else
-		warn("EventSection is nil – UI wird nicht angezeigt")
+	if hum then
+		if state then
+			originalSpeed = hum.WalkSpeed
+			hum.WalkSpeed = WALK_SPEED
+			enableNoclip()
+		else
+			hum.WalkSpeed = originalSpeed
+			disableNoclip()
+		end
 	end
-else
-	warn("EventTab is nil – UI wird nicht angezeigt")
-end
+end)
+
+EventSection:Toggle("Auto Upgrade Event Shards", function(state)
+	upgrading = state
+	if state then
+		startUpgrade()
+	end
+end)
