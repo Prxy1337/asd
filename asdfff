@@ -1,23 +1,14 @@
-
-
-
-
--- 🔥 UI CLEANUP (Re-Execute Safe)
 pcall(function()
-    local cg = game:GetService("CoreGui")
-    for _,v in ipairs(cg:GetChildren()) do
-        if v:IsA("ScreenGui") then
-            -- Luxware / Luxt / Random UI Catch
-            if v.Name:lower():find("lux")
-            or v.Name:lower():find("luxt")
-            or v.Name:lower():find("ware")
-            then
-                v:Destroy()
-            end
-        end
-    end
+	for _,gui in pairs(game.CoreGui:GetChildren()) do
+		if gui:IsA("ScreenGui") then
+			if gui.Name:lower():find("lux") 
+			or gui.Name:lower():find("ui")
+			or gui.Name:lower():find("ware") then
+				gui:Destroy()
+			end
+		end
+	end
 end)
-
 
 local Luxtl = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
