@@ -1,30 +1,13 @@
 -- =====================================================
--- 🧹 UI CLEANUP (RE-EXECUTE SAFE)
+-- 🔥 CLEANUP ALTE UI
 -- =====================================================
 pcall(function()
-	for _, gui in ipairs(game.CoreGui:GetChildren()) do
-		if gui:IsA("ScreenGui") then
+	for _, gui in pairs(game.CoreGui:GetChildren()) do
+		if gui.Name == "EventShardUI" then
 			gui:Destroy()
 		end
 	end
 end)
-
--- =====================================================
--- 📦 LUXWARE UI
--- =====================================================
-local Luxware = loadstring(game:HttpGet(
-	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
-))()
-
-local WindowName = "Penis Script" -- hier kannst du den Namen ändern
-local Window = Luxware.CreateWindow(WindowName, 6105620301)
-
-local EventTab = Window:Tab("500k Event", 6087485864)
-local CreditsTab = Window:Tab("Credits", 6087485864)
-
-local CreditsSection = CreditsTab:Section("Credits")
-CreditsSection:Label("Script: You")
-CreditsSection:Label("UI: Luxware")
 
 -- =====================================================
 -- 👤 SERVICES
@@ -47,7 +30,6 @@ local STAND_DELAY = 0.25
 local function scanSpawners()
 	local positions = {}
 	local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("ShardsSpawners")
-
 	for _, obj in ipairs(folder:GetDescendants()) do
 		if obj:IsA("BasePart") then
 			table.insert(positions, obj.Position)
@@ -131,7 +113,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🔼 EVENT SHARDS UPGRADE (ALLE 5 TYPES)
+-- 🔼 EVENT SHARDS UPGRADE
 -- =====================================================
 local UpgradeRemote = ReplicatedStorage
 	:WaitForChild("Packages")
@@ -170,16 +152,62 @@ local function startUpgrade()
 end
 
 -- =====================================================
--- 🖥️ UI
+-- 🖥️ EIGENE UI
 -- =====================================================
-local EventSection = EventTab:Section("Event Automation")
-EventSection:Label("Auto Shards & Auto Upgrade")
+local gui = Instance.new("ScreenGui")
+gui.Name = "EventShardUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-EventSection:Toggle("Auto Shards Farm", function(state)
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 150)
+frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local uic = Instance.new("UICorner")
+uic.CornerRadius = UDim.new(0,10)
+uic.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Text = "500k Event Script"
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = frame
+
+-- Buttons
+local function createToggleButton(name, y, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 280, 0, 40)
+	btn.Position = UDim2.new(0,10,0,y)
+	btn.BackgroundColor3 = Color3.fromRGB(60,200,60)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextScaled = true
+	btn.Text = name
+	btn.Parent = frame
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+
+	local state = false
+	btn.MouseButton1Click:Connect(function()
+		state = not state
+		btn.BackgroundColor3 = state and Color3.fromRGB(200,60,60) or Color3.fromRGB(60,200,60)
+		btn.Text = (state and "STOP " or "START ") .. name
+		callback(state)
+	end)
+end
+
+createToggleButton("Auto Shards Farm", 40, function(state)
 	farming = state
 	local char = player.Character
 	local hum = char and char:FindFirstChild("Humanoid")
-
 	if hum then
 		if state then
 			originalSpeed = hum.WalkSpeed
@@ -192,7 +220,7 @@ EventSection:Toggle("Auto Shards Farm", function(state)
 	end
 end)
 
-EventSection:Toggle("Auto Upgrade Event Shards", function(state)
+createToggleButton("Auto Upgrade Event Shards", 90, function(state)
 	upgrading = state
 	if state then
 		startUpgrade()
