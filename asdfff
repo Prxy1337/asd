@@ -1,14 +1,3 @@
-pcall(function()
-	for _,gui in pairs(game.CoreGui:GetChildren()) do
-		if gui:IsA("ScreenGui") then
-			if gui.Name:lower():find("lux") 
-			or gui.Name:lower():find("ui")
-			or gui.Name:lower():find("ware") then
-				gui:Destroy()
-			end
-		end
-	end
-end)
 
 local Luxtl = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
