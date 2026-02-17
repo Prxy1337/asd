@@ -1,24 +1,10 @@
 -- =====================================================
--- 🧹 CLEANUP (RE-EXEC SAFE)
--- =====================================================
-pcall(function()
-    for _, v in ipairs(game.Players.LocalPlayer.PlayerGui:GetChildren()) do
-        if v.Name == "LuxStyleUI" then
-            v:Destroy()
-        end
-    end
-end)
-
--- =====================================================
 -- 👤 SERVICES
 -- =====================================================
-local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
-
-getgenv().EVENT_SCRIPT_RUNNING = true
 
 -- =====================================================
 -- ⚙️ SETTINGS
@@ -63,7 +49,6 @@ end
 local noclipConn
 local function enableNoclip()
     noclipConn = RunService.Stepped:Connect(function()
-        if not getgenv().EVENT_SCRIPT_RUNNING then return end
         local char = player.Character
         if not char then return end
         for _, p in ipairs(char:GetDescendants()) do
@@ -92,7 +77,7 @@ local originalSpeed = 16
 -- 🚶‍♂️ AUTO SHARDS FARM LOOP
 -- =====================================================
 task.spawn(function()
-    while getgenv().EVENT_SCRIPT_RUNNING do
+    while true do
         if farming then
             if #POSITIONS == 0 then
                 POSITIONS = scanSpawners()
@@ -135,10 +120,10 @@ local UpgradeList = {
 }
 
 task.spawn(function()
-    while getgenv().EVENT_SCRIPT_RUNNING do
+    while true do
         if upgrading then
             for _, up in ipairs(UpgradeList) do
-                if not upgrading or not getgenv().EVENT_SCRIPT_RUNNING then break end
+                if not upgrading then break end
                 pcall(function()
                     UpgradeRemote:FireServer("Upgrade", "Event Shards", up)
                 end)
@@ -150,106 +135,17 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🖥️ UI (LUXWARE STYLE)
+-- 🖥️ INTEGRATION IN LUXWARE UI
 -- =====================================================
-local gui = Instance.new("ScreenGui")
-gui.Name = "LuxStyleUI"
-gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
+local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
+local Luxt = Luxtl.CreateWindow("Penis Script", 6105620301)
+local mainTab = Luxt:Tab("General", 6087485864)
+local eventTab = Luxt:Tab("500k Event")
+local combatTab = Luxt:Tab("Combat")
+local creditsTab = Luxt:Tab("Credits")
 
--- Main Frame
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 520, 0, 340)
-main.Position = UDim2.new(0.5, -260, 0.5, -170)
-main.BackgroundColor3 = Color3.fromRGB(20,20,20)
-main.BorderSizePixel = 0
-main.Visible = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
-
--- Sidebar
-local sidebar = Instance.new("Frame", main)
-sidebar.Size = UDim2.new(0, 140, 1, 0)
-sidebar.BackgroundColor3 = Color3.fromRGB(15,15,15)
-sidebar.BorderSizePixel = 0
-Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 10)
-
--- Title
-local title = Instance.new("TextLabel", sidebar)
-title.Size = UDim2.new(1,0,0,40)
-title.BackgroundTransparency = 1
-title.Text = "500k Event"
-title.Font = Enum.Font.GothamBold
-title.TextColor3 = Color3.new(1,1,1)
-title.TextScaled = true
-
--- Content Area
-local content = Instance.new("Frame", main)
-content.Position = UDim2.new(0, 150, 0, 10)
-content.Size = UDim2.new(1, -160, 1, -20)
-content.BackgroundTransparency = 1
-
--- =====================================================
--- 🔁 TAB SYSTEM
--- =====================================================
-local tabs = {}
-local function createTab(name)
-    local btn = Instance.new("TextButton", sidebar)
-    btn.Size = UDim2.new(1, -10, 0, 36)
-    btn.Position = UDim2.new(0, 5, 0, 40 + (#tabs * 40))
-    btn.Text = name
-    btn.Font = Enum.Font.Gotham
-    btn.TextScaled = true
-    btn.TextColor3 = Color3.fromRGB(200,200,200)
-    btn.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-
-    local frame = Instance.new("Frame", content)
-    frame.Size = UDim2.new(1,0,1,0)
-    frame.Visible = false
-    frame.BackgroundTransparency = 1
-
-    btn.MouseButton1Click:Connect(function()
-        for _, t in pairs(tabs) do
-            t.frame.Visible = false
-        end
-        frame.Visible = true
-    end)
-
-    table.insert(tabs, {button = btn, frame = frame})
-    if #tabs == 1 then frame.Visible = true end
-
-    return frame
-end
-
-local eventTab = createTab("500k Event")
-local creditsTab = createTab("Credits")
-
--- =====================================================
--- 🔘 TOGGLES IN EVENT TAB
--- =====================================================
-local function addToggle(tab, name, callback, posY)
-    local btn = Instance.new("TextButton", tab)
-    btn.Size = UDim2.new(0, 300, 0, 45)
-    btn.Position = UDim2.new(0, 10, 0, posY)
-    btn.Text = "START "..name
-    btn.Font = Enum.Font.GothamBold
-    btn.TextScaled = true
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.BackgroundColor3 = Color3.fromRGB(60,200,60)
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
-
-    local state = false
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = (state and "STOP " or "START ")..name
-        btn.BackgroundColor3 = state and Color3.fromRGB(200,60,60) or Color3.fromRGB(60,200,60)
-        callback(state)
-    end)
-end
-
-addToggle(eventTab, "SHARDS FARM", function(state)
+-- Event Toggles
+eventTab:Toggle("Auto Shards Farm", false, function(state)
     farming = state
     local char = player.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -263,30 +159,18 @@ addToggle(eventTab, "SHARDS FARM", function(state)
             disableNoclip()
         end
     end
-end, 45)
+end)
 
-addToggle(eventTab, "AUTO UPGRADE", function(state)
+eventTab:Toggle("Auto Upgrade Event Shards", false, function(state)
     upgrading = state
-end, 100)
-
--- =====================================================
--- ⌨️ LEFT ALT TOGGLE UI
--- =====================================================
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.LeftAlt then
-        main.Visible = not main.Visible
-    end
 end)
 
 -- =====================================================
 -- CREDITS
 -- =====================================================
-local creditLabel = Instance.new("TextLabel", creditsTab)
-creditLabel.Size = UDim2.new(1,0,0,30)
-creditLabel.Position = UDim2.new(0,0,0,10)
-creditLabel.Text = "Luxt: Main Code | xHeptc: UI Lib | Salad: Helping"
-creditLabel.TextColor3 = Color3.new(1,1,1)
-creditLabel.TextScaled = true
-creditLabel.BackgroundTransparency = 1
-creditLabel.Font = Enum.Font.Gotham
+local cf = creditsTab:Section("Main Credits")
+cf:Credit("Luxt: Main Coding")
+local cf1 = creditsTab:Section("UI Credits")
+cf1:Credit("xHeptc: UI Library")
+local cf2 = creditsTab:Section("Helping Credits")
+cf2:Credit("Salad: Helping")
