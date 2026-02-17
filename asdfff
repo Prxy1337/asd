@@ -1,12 +1,16 @@
 -- =====================================================
--- 🔥 CLEANUP ALTE UI
+-- 🔥 GLOBAL CLEANUP (RE-EXEC SAFE)
 -- =====================================================
+getgenv().EVENT_SCRIPT_RUNNING = false
+task.wait()
+
 pcall(function()
-	for _, gui in pairs(game.CoreGui:GetChildren()) do
-		if gui.Name == "EventShardUI" then
-			gui:Destroy()
-		end
-	end
+    local pg = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    for _, v in ipairs(pg:GetChildren()) do
+        if v:IsA("ScreenGui") and v.Name == "EventShardUI" then
+            v:Destroy()
+        end
+    end
 end)
 
 -- =====================================================
@@ -16,6 +20,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
+
+getgenv().EVENT_SCRIPT_RUNNING = true
 
 -- =====================================================
 -- ⚙️ SETTINGS
@@ -28,30 +34,30 @@ local STAND_DELAY = 0.25
 -- 📦 SCAN SHARDS SPAWNERS
 -- =====================================================
 local function scanSpawners()
-	local positions = {}
-	local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("ShardsSpawners")
-	for _, obj in ipairs(folder:GetDescendants()) do
-		if obj:IsA("BasePart") then
-			table.insert(positions, obj.Position)
-		end
-	end
-	return positions
+    local positions = {}
+    local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("ShardsSpawners")
+    for _, obj in ipairs(folder:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            table.insert(positions, obj.Position)
+        end
+    end
+    return positions
 end
 
 local POSITIONS = scanSpawners()
 
 local function getNearest(pos)
-	local index, dist = nil, math.huge
-	for i, p in ipairs(POSITIONS) do
-		local d = (p - pos).Magnitude
-		if d < dist then
-			dist = d
-			index = i
-		end
-	end
-	if index then
-		return table.remove(POSITIONS, index)
-	end
+    local idx, dist = nil, math.huge
+    for i, p in ipairs(POSITIONS) do
+        local d = (p - pos).Magnitude
+        if d < dist then
+            dist = d
+            idx = i
+        end
+    end
+    if idx then
+        return table.remove(POSITIONS, idx)
+    end
 end
 
 -- =====================================================
@@ -59,22 +65,23 @@ end
 -- =====================================================
 local noclipConn
 local function enableNoclip()
-	noclipConn = RunService.Stepped:Connect(function()
-		local char = player.Character
-		if not char then return end
-		for _, p in ipairs(char:GetDescendants()) do
-			if p:IsA("BasePart") then
-				p.CanCollide = false
-			end
-		end
-	end)
+    noclipConn = RunService.Stepped:Connect(function()
+        if not getgenv().EVENT_SCRIPT_RUNNING then return end
+        local char = player.Character
+        if not char then return end
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = false
+            end
+        end
+    end)
 end
 
 local function disableNoclip()
-	if noclipConn then
-		noclipConn:Disconnect()
-		noclipConn = nil
-	end
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
 end
 
 -- =====================================================
@@ -82,147 +89,129 @@ end
 -- =====================================================
 local farming = false
 local upgrading = false
-local upgradeThread
 local originalSpeed = 16
 
 -- =====================================================
--- 🚶‍♂️ AUTO SHARDS FARM
+-- 🚶‍♂️ AUTO SHARDS FARM LOOP
 -- =====================================================
 task.spawn(function()
-	while true do
-		if farming then
-			if #POSITIONS == 0 then
-				POSITIONS = scanSpawners()
-			end
+    while getgenv().EVENT_SCRIPT_RUNNING do
+        if farming then
+            if #POSITIONS == 0 then
+                POSITIONS = scanSpawners()
+            end
 
-			local char = player.Character
-			local hum = char and char:FindFirstChild("Humanoid")
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local char = player.Character
+            local hum = char and char:FindFirstChild("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
 
-			if hum and hrp then
-				local target = getNearest(hrp.Position)
-				if target then
-					hum:MoveTo(target)
-					task.wait(WALK_TIMEOUT)
-					task.wait(STAND_DELAY)
-				end
-			end
-		end
-		task.wait(0.05)
-	end
+            if hum and hrp then
+                local target = getNearest(hrp.Position)
+                if target then
+                    hum:MoveTo(target)
+                    task.wait(WALK_TIMEOUT)
+                    task.wait(STAND_DELAY)
+                end
+            end
+        end
+        task.wait(0.05)
+    end
 end)
 
 -- =====================================================
--- 🔼 EVENT SHARDS UPGRADE
+-- 🔼 EVENT SHARDS UPGRADE LOOP
 -- =====================================================
 local UpgradeRemote = ReplicatedStorage
-	:WaitForChild("Packages")
-	:WaitForChild("Knit")
-	:WaitForChild("Services")
-	:WaitForChild("RemotesService")
-	:WaitForChild("RE")
-	:WaitForChild("MainRemote")
+    :WaitForChild("Packages")
+    :WaitForChild("Knit")
+    :WaitForChild("Services")
+    :WaitForChild("RemotesService")
+    :WaitForChild("RE")
+    :WaitForChild("MainRemote")
 
 local UpgradeList = {
-	"Event Shards 2",
-	"Event Luck",
-	"Event Bulk",
-	"Event Crystals",
-	"Event Crystal Chance"
+    "Event Shards 2",
+    "Event Luck",
+    "Event Bulk",
+    "Event Crystals",
+    "Event Crystal Chance"
 }
 
-local function startUpgrade()
-	if upgradeThread then return end
-	upgradeThread = task.spawn(function()
-		while upgrading do
-			for _, upgradeName in ipairs(UpgradeList) do
-				if not upgrading then break end
-				pcall(function()
-					UpgradeRemote:FireServer(
-						"Upgrade",
-						"Event Shards",
-						upgradeName
-					)
-				end)
-				task.wait(0.35)
-			end
-		end
-		upgradeThread = nil
-	end)
-end
+task.spawn(function()
+    while getgenv().EVENT_SCRIPT_RUNNING do
+        if upgrading then
+            for _, up in ipairs(UpgradeList) do
+                if not upgrading or not getgenv().EVENT_SCRIPT_RUNNING then break end
+                pcall(function()
+                    UpgradeRemote:FireServer("Upgrade", "Event Shards", up)
+                end)
+                task.wait(0.35)
+            end
+        end
+        task.wait(0.2)
+    end
+end)
 
 -- =====================================================
--- 🖥️ EIGENE UI
+-- 🖥️ UI (EIGEN, STABIL)
 -- =====================================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "EventShardUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 150)
-frame.Position = UDim2.new(0.5, -150, 0.5, -75)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 320, 0, 170)
+frame.Position = UDim2.new(0.5, -160, 0.5, -85)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.BorderSizePixel = 0
-frame.Parent = gui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
 
-local uic = Instance.new("UICorner")
-uic.CornerRadius = UDim.new(0,10)
-uic.Parent = frame
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,30)
-title.Position = UDim2.new(0,0,0,0)
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,35)
 title.BackgroundTransparency = 1
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Text = "Penis Script"
+title.Text = "500k Event Script"
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
-title.Parent = frame
+title.TextColor3 = Color3.new(1,1,1)
 
--- Buttons
-local function createToggleButton(name, y, callback)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 280, 0, 40)
-	btn.Position = UDim2.new(0,10,0,y)
-	btn.BackgroundColor3 = Color3.fromRGB(60,200,60)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Font = Enum.Font.GothamBold
-	btn.TextScaled = true
-	btn.Text = name
-	btn.Parent = frame
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+local function toggleButton(text, y, callback)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0,300,0,45)
+    btn.Position = UDim2.new(0,10,0,y)
+    btn.Text = "START "..text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(60,200,60)
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
 
-	local state = false
-	btn.MouseButton1Click:Connect(function()
-		state = not state
-		btn.BackgroundColor3 = state and Color3.fromRGB(200,60,60) or Color3.fromRGB(60,200,60)
-		btn.Text = (state and "STOP " or "START ") .. name
-		callback(state)
-	end)
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = (state and "STOP " or "START ") .. text
+        btn.BackgroundColor3 = state and Color3.fromRGB(200,60,60) or Color3.fromRGB(60,200,60)
+        callback(state)
+    end)
 end
 
-createToggleButton("Auto Shards Farm", 40, function(state)
-	farming = state
-	local char = player.Character
-	local hum = char and char:FindFirstChild("Humanoid")
-	if hum then
-		if state then
-			originalSpeed = hum.WalkSpeed
-			hum.WalkSpeed = WALK_SPEED
-			enableNoclip()
-		else
-			hum.WalkSpeed = originalSpeed
-			disableNoclip()
-		end
-	end
+toggleButton("SHARDS FARM", 45, function(state)
+    farming = state
+    local char = player.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    if hum then
+        if state then
+            originalSpeed = hum.WalkSpeed
+            hum.WalkSpeed = WALK_SPEED
+            enableNoclip()
+        else
+            hum.WalkSpeed = originalSpeed
+            disableNoclip()
+        end
+    end
 end)
 
-createToggleButton("Auto Upgrade Event Shards", 90, function(state)
-	upgrading = state
-	if state then
-		startUpgrade()
-	end
+toggleButton("AUTO UPGRADE", 100, function(state)
+    upgrading = state
 end)
