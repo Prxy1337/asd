@@ -30,8 +30,10 @@ local CreditsTab = Window:Tab("Credits", 6087485864)
 -- 📌 CREDITS
 -- =====================================================
 local CreditsSection = CreditsTab:Section("Credits")
-CreditsSection:Label("Script: You")
-CreditsSection:Label("UI: Luxware")
+if CreditsSection then
+	CreditsSection:Label("Script: You")
+	CreditsSection:Label("UI: Luxware")
+end
 
 -- =====================================================
 -- 👤 SERVICES
@@ -182,29 +184,38 @@ end
 -- =====================================================
 -- 🖥️ EVENT TAB UI (FIXED)
 -- =====================================================
-local EventSection = EventTab:Section("Event Automation")
+if EventTab then
+	local EventSection = EventTab:Section("Event Automation")
+	if EventSection then
+		EventSection:Label("Auto Shards Farm & Upgrade")
 
-EventSection:Toggle("Auto Shards Farm", function(state)
-	farming = state
+		EventSection:Toggle("Auto Shards Farm", function(state)
+			farming = state
 
-	local char = player.Character
-	local hum = char and char:FindFirstChild("Humanoid")
+			local char = player.Character
+			local hum = char and char:FindFirstChild("Humanoid")
 
-	if hum then
-		if state then
-			originalSpeed = hum.WalkSpeed
-			hum.WalkSpeed = WALK_SPEED
-			enableNoclip()
-		else
-			hum.WalkSpeed = originalSpeed
-			disableNoclip()
-		end
+			if hum then
+				if state then
+					originalSpeed = hum.WalkSpeed
+					hum.WalkSpeed = WALK_SPEED
+					enableNoclip()
+				else
+					hum.WalkSpeed = originalSpeed
+					disableNoclip()
+				end
+			end
+		end)
+
+		EventSection:Toggle("Auto Upgrade Event Shards", function(state)
+			upgrading = state
+			if state then
+				startUpgrade()
+			end
+		end)
+	else
+		warn("EventSection is nil – UI wird nicht angezeigt")
 	end
-end)
-
-EventSection:Toggle("Auto Upgrade Event Shards", function(state)
-	upgrading = state
-	if state then
-		startUpgrade()
-	end
-end)
+else
+	warn("EventTab is nil – UI wird nicht angezeigt")
+end
