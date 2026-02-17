@@ -1,58 +1,179 @@
-local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
-
-local Luxt = Luxtl.CreateWindow("Penis Script", 6105620301)
-
-local mainTab = Luxt:Tab("General", 6087485864)
-local teleportsTab = Luxt:Tab("500k Event")
-local eventSection = teleportsTab:Section("Event Shards")
-
-eventSection:Toggle("Auto Shards Farm", function(state)
-	running = state
-
-	local char = game.Players.LocalPlayer.Character
-	if not char then return end
-
-	local hum = char:FindFirstChild("Humanoid")
-	if not hum then return end
-
-	if state then
-		originalSpeed = hum.WalkSpeed
-		hum.WalkSpeed = WALK_SPEED
-		enableNoclip()
-	else
-		hum.WalkSpeed = originalSpeed
-		disableNoclip()
+-- =====================================================
+-- 📚 LUXWARE UI
+-- =====================================================
+pcall(function()
+	for _,v in pairs(game.CoreGui:GetChildren()) do
+		if v.Name == "Luxware" then
+			v:Destroy()
+		end
 	end
 end)
 
-local autoQTab = Luxt:Tab("XMAS")
-local combatTab = Luxt:Tab("Combat")
-local creditsTab = Luxt:Tab("Credits")
-local cf = creditsTab:Section("Main Credits")
-cf:Credit("Luxt: Main Coding")
-local cf1 = creditsTab:Section("UI Credits")
-cf1:Credit("xHeptc: UI Library")
-local cf2 = creditsTab:Section("Helping Credits")
-cf2:Credit("Salad: Helping")
+local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
+local Luxt = Luxtl.CreateWindow("500k Event Script", 6105620301)
 
-local Examples = Luxt:Tab("Examples")
-local ff = Examples:Section("All Examples")
-ff:Label("Willkommen")
-ff:Button("TextButton Text", function()
-    print("Clicked!")
+-- =====================================================
+-- 🗂️ TABS
+-- =====================================================
+local mainTab = Luxt:Tab("General")
+local eventTab = Luxt:Tab("500k Event")
+local creditsTab = Luxt:Tab("Credits")
+
+-- =====================================================
+-- 🧾 CREDITS
+-- =====================================================
+local cr = creditsTab:Section("Credits")
+cr:Label("Script: You + ChatGPT")
+cr:Label("UI: Luxware")
+
+-- =====================================================
+-- 👤 PLAYER
+-- =====================================================
+local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- =====================================================
+-- ⚙️ SETTINGS
+-- =====================================================
+local WALK_SPEED = 120
+local WALK_TIMEOUT = 0.15
+local STAND_DELAY = 0.25
+
+-- =====================================================
+-- 📦 SCAN SHARD SPAWNERS
+-- =====================================================
+local function scanSpawners()
+	local positions = {}
+
+	local content = workspace:WaitForChild("__GAME_CONTENT")
+	local folder = content:WaitForChild("ShardsSpawners")
+
+	for _,obj in ipairs(folder:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			table.insert(positions, obj.Position)
+		end
+	end
+
+	print("💎 Spawner gefunden:", #positions)
+	return positions
+end
+
+local POSITIONS = scanSpawners()
+
+-- =====================================================
+-- 🔍 NEAREST SPAWNER
+-- =====================================================
+local function getNearestSpawner(pos)
+	local nearestIndex
+	local shortest = math.huge
+
+	for i,spawnerPos in ipairs(POSITIONS) do
+		local dist = (spawnerPos - pos).Magnitude
+		if dist < shortest then
+			shortest = dist
+			nearestIndex = i
+		end
+	end
+
+	if nearestIndex then
+		return table.remove(POSITIONS, nearestIndex)
+	end
+end
+
+-- =====================================================
+-- 🧱 NOCLIP
+-- =====================================================
+local noclipConn
+local function enableNoclip()
+	noclipConn = RunService.Stepped:Connect(function()
+		local char = player.Character
+		if not char then return end
+		for _,p in ipairs(char:GetDescendants()) do
+			if p:IsA("BasePart") then
+				p.CanCollide = false
+			end
+		end
+	end)
+end
+
+local function disableNoclip()
+	if noclipConn then
+		noclipConn:Disconnect()
+		noclipConn = nil
+	end
+end
+
+-- =====================================================
+-- 🔁 STATUS
+-- =====================================================
+local running = false
+local originalSpeed = 16
+
+-- =====================================================
+-- 🚶 AUTO WALK LOOP
+-- =====================================================
+task.spawn(function()
+	while true do
+		if running then
+			if #POSITIONS == 0 then
+				POSITIONS = scanSpawners()
+			end
+
+			local char = player.Character or player.CharacterAdded:Wait()
+			local hum = char:WaitForChild("Humanoid")
+			local hrp = char:WaitForChild("HumanoidRootPart")
+
+			local target = getNearestSpawner(hrp.Position)
+			if target then
+				hum:MoveTo(target)
+
+				local reached = false
+				local conn
+				conn = hum.MoveToFinished:Connect(function()
+					reached = true
+					conn:Disconnect()
+				end)
+
+				local start = tick()
+				while not reached and tick() - start < WALK_TIMEOUT and running do
+					task.wait(0.05)
+				end
+
+				task.wait(STAND_DELAY)
+			end
+		end
+		task.wait(0.05)
+	end
 end)
-ff:Toggle("Toggle Me!", function(isToggled)
-    print(isToggled) -- prints true or false
+
+-- =====================================================
+-- 🎮 500k EVENT SECTION
+-- =====================================================
+local eventSection = eventTab:Section("Auto Shards Farm")
+
+eventSection:Toggle("Auto Shards", function(state)
+	running = state
+
+	local char = player.Character
+	if char then
+		local hum = char:FindFirstChild("Humanoid")
+		if hum then
+			if running then
+				originalSpeed = hum.WalkSpeed
+				hum.WalkSpeed = WALK_SPEED
+				enableNoclip()
+			else
+				hum.WalkSpeed = originalSpeed
+				disableNoclip()
+			end
+		end
+	end
 end)
-ff:KeyBind("Print('Hey') on bind", Enum.KeyCode.R, function() --Enum.KeyCode.R is starting Key
-    print('Hey')
+
+eventSection:Slider("WalkSpeed", 50, 300, function(v)
+	WALK_SPEED = v
 end)
-ff:TextBox("TextBox Info", "Epic PlaceHolder", function(getText)
-    print(getText) -- Prints whatever player types
-end)
-ff:Slider("WalkSpeed", 16, 503, function(currentValue)
-    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = currentValue 
-end)
-ff:DropDown("Favorite Food?", {"Pizza", "Burger", "Sandwiches"}, function(food) -- food is chosen item
-    print(food)
+
+eventSection:Button("Rescan Spawners", function()
+	POSITIONS = scanSpawners()
 end)
