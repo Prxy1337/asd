@@ -3,7 +3,7 @@
 -- =====================================================
 pcall(function()
 	for _, gui in ipairs(game.CoreGui:GetChildren()) do
-		if gui:IsA("ScreenGui") and gui.Name:lower():find("lux") then
+		if gui:IsA("ScreenGui") then
 			gui:Destroy()
 		end
 	end
@@ -16,7 +16,8 @@ local Luxware = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
 ))()
 
-local Window = Luxware.CreateWindow("Penis Script", 6105620301)
+local WindowName = "500k Event Script v2" -- hier kannst du den Namen ändern
+local Window = Luxware.CreateWindow(WindowName, 6105620301)
 
 local EventTab = Window:Tab("500k Event", 6087485864)
 local CreditsTab = Window:Tab("Credits", 6087485864)
