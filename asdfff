@@ -23,6 +23,7 @@ local Window = Luxware.CreateWindow("卐Führer Script卐", 15275687632)
 -- =====================================================
 local EventTab     = Window:Tab("🎯 500k Event")
 local ValentineTab = Window:Tab("❤️ Valentine")
+local HalloweenTab = Window:Tab("🎃 Halloween")
 local CreditsTab   = Window:Tab("📜 Credits")
 
 CreditsTab:Section("Credits"):Label("Script by Hitler卐")
@@ -42,88 +43,7 @@ local WALK_SPEED = 60
 local STAND_DELAY = 0.20
 local EVENT_WAIT = 1.0
 local TREE_WAIT  = 0.35
-
--- =====================================================
--- 📦 SHARDS SPAWNERS
--- =====================================================
-local function scanSpawners()
-	local positions = {}
-	local content = workspace:WaitForChild("__GAME_CONTENT")
-	local folder = content:WaitForChild("ShardsSpawners")
-
-	for _, obj in ipairs(folder:GetDescendants()) do
-		if obj:IsA("BasePart") then
-			table.insert(positions, obj.Position)
-		end
-	end
-	return positions
-end
-
-local POSITIONS = scanSpawners()
-
--- =====================================================
--- 🔍 NEAREST
--- =====================================================
-local function getNearest(pos)
-	local index, dist = nil, math.huge
-	for i, p in ipairs(POSITIONS) do
-		local d = (p - pos).Magnitude
-		if d < dist then
-			dist = d
-			index = i
-		end
-	end
-	if index then
-		return table.remove(POSITIONS, index)
-	end
-end
-
--- =====================================================
--- 🧱 NOCLIP
--- =====================================================
-local noclipConn
-local function enableNoclip()
-	noclipConn = RunService.Stepped:Connect(function()
-		local char = player.Character
-		if not char then return end
-		for _, p in ipairs(char:GetDescendants()) do
-			if p:IsA("BasePart") then
-				p.CanCollide = false
-			end
-		end
-	end)
-end
-
-local function disableNoclip()
-	if noclipConn then
-		noclipConn:Disconnect()
-		noclipConn = nil
-	end
-end
-
--- =====================================================
--- 🚶 SMOOTH WALK
--- =====================================================
-local function smoothWalkTo(targetPos)
-	local char = player.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	while (hrp.Position - targetPos).Magnitude > 2 do
-		local dir = (targetPos - hrp.Position).Unit
-		hrp.CFrame = hrp.CFrame + dir * WALK_SPEED * task.wait()
-	end
-end
-
--- =====================================================
--- 🔁 STATES
--- =====================================================
-local farming = false
-local upgradingEvent = false
-local upgradingValentine = false
-local upgradeTreeOn = false
-local autoRebirth = false
+local HALLOWEEN_UPGRADE_WAIT = 1.4
 
 -- =====================================================
 -- 🔼 REMOTE
@@ -137,112 +57,14 @@ local MainRemote = ReplicatedStorage
 	:WaitForChild("MainRemote")
 
 -- =====================================================
--- 🔁 AUTO FARM
+-- 🔁 STATES
 -- =====================================================
-task.spawn(function()
-	while true do
-		if farming then
-			if #POSITIONS == 0 then
-				POSITIONS = scanSpawners()
-			end
-			local char = player.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				local target = getNearest(hrp.Position)
-				if target then
-					smoothWalkTo(target)
-					task.wait(STAND_DELAY)
-				end
-			end
-		end
-		task.wait(0.05)
-	end
-end)
-
--- =====================================================
--- 🔼 EVENT UPGRADES (500k)
--- =====================================================
-local EVENT_UPGRADES = {
-	"Event Shards",
-	"Event Shards 2",
-	"Event Luck",
-	"Event Bulk",
-	"Event Crystals",
-	"Event Crystal Chance"
-}
-
-task.spawn(function()
-	while true do
-		if upgradingEvent then
-			for _, upg in ipairs(EVENT_UPGRADES) do
-				pcall(function()
-					MainRemote:FireServer("UpgradeAll", "Event Shards", upg)
-				end)
-				task.wait(EVENT_WAIT)
-			end
-		end
-		task.wait(0.5)
-	end
-end)
-
--- =====================================================
--- ❤️ VALENTINE UPGRADES
--- 👉 NAMES KANNST DU SELBST ÄNDERN
--- =====================================================
-local VALENTINE_UPGRADES = {
-	"Infinite Hearts",
-	"Valentine Bulk",
-	"Valentine Shard Chance",
-	"Valentine Infinite Love",
-	"Valentine Boost"
-}
-
-task.spawn(function()
-	while true do
-		if upgradingValentine then
-			for _, upg in ipairs(VALENTINE_UPGRADES) do
-				pcall(function()
-					MainRemote:FireServer("UpgradeAll", "Hearts", upg)
-				end)
-				task.wait(1.2) -- extra langsam
-			end
-		end
-		task.wait(0.6)
-	end
-end)
-
--- =====================================================
--- ❤️ LOVE UPGRADES
--- 👉 NAMES KANNST DU SELBST ÄNDERN
--- =====================================================
-local LOVE_UPGRADES = {
-	"Hearts",
-	"Love",
-	"Clicks",
-	"Clicker Tokens",
-	"Fish Multiplier",
-    "Light Points",
-    "Madness",
-    "Sins",
-    "Sunite",
-    "Rune Bulk",
-    "Rune Luck",
-
-}
-
-task.spawn(function()
-	while true do
-		if upgradingLove then
-			for _, upg in ipairs(LOVE_UPGRADES) do
-				pcall(function()
-					MainRemote:FireServer("UpgradeAll", "Love", upg)
-				end)
-				task.wait(1.2) -- extra langsam
-			end
-		end
-		task.wait(0.6)
-	end
-end)
+local farming = false
+local upgradingEvent = false
+local upgradingValentine = false
+local upgradingHalloween = false
+local upgradeTreeOn = false
+local autoRebirth = false
 
 -- =====================================================
 -- 🌳 AUTO UPGRADE TREE
@@ -288,40 +110,108 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🖥️ UI – 500k EVENT
+-- 🎃 HALLOWEEN UPGRADES
 -- =====================================================
-local EventSection = EventTab:Section("500k Event")
+local HALLOWEEN_UPGRADES = {
+	"Flesh Multiplier",
+	"Mob Damage Multiplier",
+	"Attack Speed",
+	"Halloween Bulk",
+	"Halloween Luck",
+	"Sword Enchants Gems Chance",
+	"Candy Corn Multiplier III",
+	"Refined Candy Multiplier III",
+	"Factorized Candy Multiplier V",
+}
 
-EventSection:Label("🎯 Automation")
-
-EventSection:Toggle("Auto Shards Farm", function(v)
-	farming = v
-	if v then enableNoclip() else disableNoclip() end
-end)
-
-EventSection:Toggle("Auto Upgrade Event", function(v)
-	upgradingEvent = v
-end)
-
-EventSection:Toggle("Auto Upgrade Tree", function(v)
-	upgradeTreeOn = v
-end)
-
-EventSection:Toggle("Auto Rebirth", function(v)
-	autoRebirth = v
+task.spawn(function()
+	while true do
+		if upgradingHalloween then
+			for _, upg in ipairs(HALLOWEEN_UPGRADES) do
+				pcall(function()
+					MainRemote:FireServer("UpgradeAll", "Flesh", upg)
+				end)
+				task.wait(HALLOWEEN_UPGRADE_WAIT)
+			end
+		end
+		task.wait(0.7)
+	end
 end)
 
 -- =====================================================
--- 🖥️ UI – VALENTINE
+-- 🎃 HALLOWEEN MOB TELEPORT
 -- =====================================================
-local ValentineSection = ValentineTab:Section("Valentine Event")
+local HalloweenSection = HalloweenTab:Section("👻 Mob Teleport")
+local UpgradeSection   = HalloweenTab:Section("🧪 Halloween Upgrades")
 
-ValentineSection:Label("❤️ Automation")
+local HALLOWEEN_MOBS = {
+	{key="Clue", label="Clue 10"},
+	{key="Lucky", label="Lucky 90"},
+	{key="Popebaki", label="Popebaki 700"},
+	{key="Ninja", label="Ninja 5K"},
+	{key="Pixelated", label="Pixelated 45K"},
+	{key="Nuke", label="Nuke 385K"},
+	{key="Blizz", label="Blizz 3.25M"},
+	{key="Yoshy", label="Yoshy 30M"},
+	{key="Christmasnobo", label="Christmasnobo 250M"},
+	{key="Dirtyeyes", label="Dirtyeyes 1.75B"},
+	{key="Lorax", label="Lorax 15B"},
+	{key="Zyfley", label="Zyfley 120B"},
+	{key="Matis", label="Matis 1T"},
+	{key="15k", label="15k 15T"},
+	{key="Connor", label="Connor BOSS"},
+	{key="0hxsn", label="0hxsn BOSS"},
+	{key="Ghoulax", label="Ghoulax BOSS"},
+}
 
-ValentineSection:Toggle("Auto Upgrade Valentine", function(v)
-	upgradingValentine = v
+local BOSS = {
+	["0hxsn"] = true,
+	["Connor"] = true,
+	["Ghoulax"] = true
+}
+
+local activeMobs = {}
+local mobIndex = {}
+
+local function getMobTargets(mobName)
+	local results = {}
+	local folder = workspace.__GAME_CONTENT.Mobs.Halloween
+	for _, model in ipairs(folder:GetChildren()) do
+		if model:IsA("Model") and model.Name == mobName then
+			local part = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+			if part then table.insert(results, part) end
+		end
+	end
+	return results
+end
+
+task.spawn(function()
+	while true do
+		for mobName, enabled in pairs(activeMobs) do
+			if enabled then
+				local targets = getMobTargets(mobName)
+				if #targets > 0 then
+					mobIndex[mobName] = (mobIndex[mobName] or 0) + 1
+					if mobIndex[mobName] > #targets then mobIndex[mobName] = 1 end
+					local target = targets[BOSS[mobName] and 1 or mobIndex[mobName]]
+					local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+					if hrp and target then
+						hrp.CFrame = target.CFrame * CFrame.new(0,0,-4)
+					end
+				end
+				task.wait(BOSS[mobName] and 0.6 or 0.35)
+			end
+		end
+		task.wait(0.15)
+	end
 end)
 
-ValentineSection:Toggle("Auto Upgrade Love", function(v)
-	upgradingLove = v
+for _, mob in ipairs(HALLOWEEN_MOBS) do
+	HalloweenSection:Toggle("TP: "..mob.label, function(v)
+		activeMobs[mob.key] = v
+	end)
+end
+
+UpgradeSection:Toggle("Auto Upgrade Halloween", function(v)
+	upgradingHalloween = v
 end)
