@@ -16,7 +16,7 @@ local Luxware = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
 ))()
 
-local Window = Luxware.CreateWindow("Casino Script", 15275687632)
+local Window = Luxware.CreateWindow("卐Führer Script卐", 15275687632)
 
 -- =====================================================
 -- 📑 TABS
@@ -25,7 +25,7 @@ local EventTab     = Window:Tab("🎯 500k Event")
 local ValentineTab = Window:Tab("❤️ Valentine")
 local CreditsTab   = Window:Tab("📜 Credits")
 
-CreditsTab:Section("Credits"):Label("Script by Proxy")
+CreditsTab:Section("Credits"):Label("Script by Hitler卐")
 
 -- =====================================================
 -- 👤 SERVICES
@@ -292,6 +292,8 @@ end)
 -- =====================================================
 local EventSection = EventTab:Section("500k Event")
 
+EventSection:Label("🎯 Automation")
+
 EventSection:Toggle("Auto Shards Farm", function(v)
 	farming = v
 	if v then enableNoclip() else disableNoclip() end
@@ -314,7 +316,7 @@ end)
 -- =====================================================
 local ValentineSection = ValentineTab:Section("Valentine Event")
 
-ValentineSection:Label("Auto Valentine Upgrades")
+ValentineSection:Label("❤️ Automation")
 
 ValentineSection:Toggle("Auto Upgrade Valentine", function(v)
 	upgradingValentine = v
