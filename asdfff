@@ -425,10 +425,13 @@ end)
 -- =====================================================
 local REFINED_CANDY_UPGRADES = {
 	"Refined Candy Multiplier",
+    "Refined Candy Multiplier II",
+    "Flesh Multiplier IV",
 	"Candy Corn Multiplier IV",
 	"Halloween Bulk III",
 	"Halloween Luck III",
 	"Factorized Candy Multiplier III",
+    "Unlock Factorized Candy",
 }
 
 task.spawn(function()
