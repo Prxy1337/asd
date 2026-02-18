@@ -127,6 +127,7 @@ local upgradeTreeOn = false
 local autoRebirth = false
 local upgradingHalloween = false
 local autoHalloweenRebirth = false
+local autoCandy = false
 
 -- =====================================================
 -- 🔼 REMOTE
@@ -384,6 +385,48 @@ task.spawn(function()
 end)
 
 -- =====================================================
+-- 🍬 HALLOWEEN AUTO CANDY (PlayersCandy Pull)
+-- basiert auf deinem funktionierenden Script
+-- =====================================================
+local function getCandyFolder()
+	local content = workspace:WaitForChild("__GAME_CONTENT")
+	local playersCandy = content:WaitForChild("PlayersCandy")
+	return playersCandy:FindFirstChild(tostring(player.UserId))
+end
+
+task.spawn(function()
+	while true do
+		if autoCandy then
+			local folder = getCandyFolder()
+			if folder then
+				local char = player.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+				if hrp then
+					for _, obj in ipairs(folder:GetChildren()) do
+						local part = nil
+
+						if obj:IsA("BasePart") then
+							part = obj
+						elseif obj:IsA("Model") then
+							part = obj:FindFirstChild("Cube") 
+								or obj:FindFirstChildWhichIsA("BasePart")
+						end
+
+						if part then
+							-- leicht versetzt -> verhindert "Tanzen" & Lag
+							part.CFrame = hrp.CFrame * CFrame.new(0, 0, -2)
+						end
+					end
+				end
+			end
+		end
+		task.wait(0.2) -- stabil & serverfreundlich
+	end
+end)
+
+
+-- =====================================================
 -- 🖥️ UI
 -- =====================================================
 -- 500k Event
@@ -406,3 +449,12 @@ for _, mob in ipairs(HALLOWEEN_MOBS) do
 end
 UpgradeSection:Toggle("Auto Upgrade Halloween", function(v) upgradingHalloween=v end)
 UpgradeSection:Toggle("Auto Rebirth Halloween", function(v) autoHalloweenRebirth=v end)
+
+-- =====================================================
+-- 🍬 HALLOWEEN UPGRADE & REBIRTH (NEUE SEKTION)
+-- =====================================================
+local HalloweenUpgradeSection = HalloweenTab:Section("🍬 Candy Porn")
+
+HalloweenUpgradeSection:Toggle("Auto Collect Candy Porn", function(v)
+	autoCandy = v
+end)
