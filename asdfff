@@ -26,7 +26,7 @@ local ValentineTab = Window:Tab("❤️ Valentine")
 local HalloweenTab = Window:Tab("🎃 Halloween")
 local CreditsTab   = Window:Tab("📜 Credits")
 
-CreditsTab:Section("Credits"):Label("Script by Hitler卐")
+CreditsTab:Section("Credits"):Label("Full Script fixed & optimized")
 
 -- =====================================================
 -- 👤 SERVICES
@@ -37,7 +37,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 -- =====================================================
--- ⚙️ SETTINGS
+-- ⚙️ SETTINGS (ANTI FREEZE)
 -- =====================================================
 local WALK_SPEED = 60
 local STAND_DELAY = 0.20
@@ -45,12 +45,41 @@ local EVENT_WAIT = 1.0
 local TREE_WAIT  = 0.35
 
 -- =====================================================
--- 📦 SHARDS SPAWNERS
+-- 🔁 STATES
+-- =====================================================
+local farming = false
+local upgradingEvent = false
+local upgradingValentine = false
+local upgradingLove = false
+local upgradeTreeOn = false
+local autoRebirth = false
+
+-- Halloween
+local upgradingHalloween = false
+local autoHalloweenRebirth = false
+local autoCandy = false
+local upgradingCandyCorn = false
+local upgradingRefinedCandy = false
+
+-- =====================================================
+-- 🔼 REMOTE
+-- =====================================================
+local MainRemote = ReplicatedStorage
+	:WaitForChild("Packages")
+	:WaitForChild("Knit")
+	:WaitForChild("Services")
+	:WaitForChild("RemotesService")
+	:WaitForChild("RE")
+	:WaitForChild("MainRemote")
+
+-- =====================================================
+-- 📦 SHARDS SPAWNERS (500k FARM)
 -- =====================================================
 local function scanSpawners()
 	local positions = {}
 	local content = workspace:WaitForChild("__GAME_CONTENT")
 	local folder = content:WaitForChild("ShardsSpawners")
+
 	for _, obj in ipairs(folder:GetDescendants()) do
 		if obj:IsA("BasePart") then
 			table.insert(positions, obj.Position)
@@ -61,9 +90,6 @@ end
 
 local POSITIONS = scanSpawners()
 
--- =====================================================
--- 🔍 NEAREST
--- =====================================================
 local function getNearest(pos)
 	local index, dist = nil, math.huge
 	for i, p in ipairs(POSITIONS) do
@@ -102,7 +128,7 @@ local function disableNoclip()
 end
 
 -- =====================================================
--- 🚶 SMOOTH WALK (500k FARM)
+-- 🚶 SMOOTH WALK FARM
 -- =====================================================
 local function smoothWalkTo(targetPos)
 	local char = player.Character
@@ -115,31 +141,6 @@ local function smoothWalkTo(targetPos)
 		hrp.CFrame = hrp.CFrame + dir * WALK_SPEED * task.wait()
 	end
 end
-
--- =====================================================
--- 🔁 STATES
--- =====================================================
-local farming = false
-local upgradingEvent = false
-local upgradingValentine = false
-local upgradingLove = false
-local upgradeTreeOn = false
-local autoRebirth = false
-local upgradingHalloween = false
-local autoHalloweenRebirth = false
-local autoCandy = false
-local upgradingCandyCorn = false
-
--- =====================================================
--- 🔼 REMOTE
--- =====================================================
-local MainRemote = ReplicatedStorage
-	:WaitForChild("Packages")
-	:WaitForChild("Knit")
-	:WaitForChild("Services")
-	:WaitForChild("RemotesService")
-	:WaitForChild("RE")
-	:WaitForChild("MainRemote")
 
 -- =====================================================
 -- 🔁 AUTO FARM 500k
@@ -165,7 +166,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🔼 EVENT UPGRADES 500k
+-- 🔼 500k EVENT UPGRADES
 -- =====================================================
 local EVENT_UPGRADES = {
 	"Event Shards",
@@ -191,7 +192,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🌳 AUTO UPGRADE TREE (LANGSAM & STABIL)
+-- 🌳 AUTO TREE (LANGSAM)
 -- =====================================================
 local TREE_UPGRADES = {
 	"Event1_Start",
@@ -258,28 +259,8 @@ task.spawn(function()
 	end
 end)
 
-local LOVE_UPGRADES = {
-	"Hearts","Love","Clicks","Clicker Tokens",
-	"Fish Multiplier","Light Points","Madness",
-	"Sins","Sunite","Rune Bulk","Rune Luck",
-}
-
-task.spawn(function()
-	while true do
-		if upgradingLove then
-			for _, upg in ipairs(LOVE_UPGRADES) do
-				pcall(function()
-					MainRemote:FireServer("UpgradeAll", "Love", upg)
-				end)
-				task.wait(1.2)
-			end
-		end
-		task.wait(0.6)
-	end
-end)
-
 -- =====================================================
--- 🎃 HALLOWEEN MOBS (TP WIEDER DRIN!)
+-- 🎃 HALLOWEEN MOB TP (MIT DEINER ORDER)
 -- =====================================================
 local HALLOWEEN_MOBS = {
 	{key="Clue", label="Clue 10"},
@@ -307,11 +288,17 @@ local mobIndex = {}
 
 local function getMobTargets(mobName)
 	local results = {}
-	local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("Mobs"):WaitForChild("Halloween")
+	local folder = workspace:WaitForChild("__GAME_CONTENT")
+		:WaitForChild("Mobs")
+		:WaitForChild("Halloween")
+
 	for _, model in ipairs(folder:GetChildren()) do
 		if model:IsA("Model") and model.Name == mobName then
-			local part = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-			if part then table.insert(results, part) end
+			local part = model:FindFirstChild("HumanoidRootPart") 
+				or model:FindFirstChildWhichIsA("BasePart")
+			if part then
+				table.insert(results, part)
+			end
 		end
 	end
 	return results
@@ -324,7 +311,9 @@ task.spawn(function()
 				local targets = getMobTargets(mobName)
 				if #targets > 0 then
 					mobIndex[mobName] = (mobIndex[mobName] or 0) + 1
-					if mobIndex[mobName] > #targets then mobIndex[mobName] = 1 end
+					if mobIndex[mobName] > #targets then
+						mobIndex[mobName] = 1
+					end
 					local target = targets[BOSS[mobName] and 1 or mobIndex[mobName]]
 					local char = player.Character
 					local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -340,7 +329,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🎃 HALLOWEEN UPGRADES + REBIRTH
+-- 🎃 HALLOWEEN UPGRADES
 -- =====================================================
 local HALLOWEEN_UPGRADES = {
 	"Flesh Multiplier",
@@ -370,55 +359,23 @@ task.spawn(function()
 	end
 end)
 
-task.spawn(function()
-	while true do
-		if autoHalloweenRebirth then
-			pcall(function()
-				MainRemote:FireServer("HalloweenEvent_Fleshify")
-			end)
-			task.wait(2.5)
-		end
-		task.wait(0.5)
-	end
-end)
-
 -- =====================================================
--- 🍬 AUTO CANDY PULL (STABIL)
--- =====================================================
-local function getCandyFolder()
-	local content = workspace:WaitForChild("__GAME_CONTENT")
-	local playersCandy = content:WaitForChild("PlayersCandy")
-	return playersCandy:FindFirstChild(tostring(player.UserId))
-end
-
-task.spawn(function()
-	while true do
-		if autoCandy then
-			local folder = getCandyFolder()
-			if folder then
-				local char = player.Character
-				local hrp = char and char:FindFirstChild("HumanoidRootPart")
-				if hrp then
-					for _, obj in ipairs(folder:GetChildren()) do
-						local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
-						if part then
-							part.CFrame = hrp.CFrame * CFrame.new(0,0,-2)
-						end
-					end
-				end
-			end
-		end
-		task.wait(0.2)
-	end
-end)
-
--- =====================================================
--- 🍬 CANDY CORN UPGRADES (NEU)
+-- 🍬 CANDY CORN UPGRADES
 -- =====================================================
 local CANDY_CORN_UPGRADES = {
-	"Pickup Radius",
+	"Candy Corn Multiplier II",
 	"Candy Corn Multiplier",
-	"Candy Corn Spawn Rate",
+	"Candy Cooldown",
+    "Candy Cooldown II",
+    "Candy Corn Capacity",
+    "Candy Corn Zone Size",
+    "Halloween Bulk II",
+    "Halloween Luck II",
+    "Flesh Multiplier III",
+    "Candy Mutation Chance",
+    "Refined Candy Multiplier IV",
+    "Factorized Candy Multiplier IV",
+
 }
 
 task.spawn(function()
@@ -436,27 +393,101 @@ task.spawn(function()
 end)
 
 -- =====================================================
+-- 🍭 REFINED CANDY UPGRADES (NEU)
+-- =====================================================
+local REFINED_CANDY_UPGRADES = {
+	"Refined Candy Multiplier",
+	"Candy Corn Multiplier IV",
+	"Halloween Bulk III",
+    "Halloween Luck III",
+    "Factorized Candy Multiplier III",
+}
+
+task.spawn(function()
+	while true do
+		if upgradingRefinedCandy then
+			for _, upg in ipairs(REFINED_CANDY_UPGRADES) do
+				pcall(function()
+					MainRemote:FireServer("UpgradeAll", "Refined Candy", upg)
+				end)
+				task.wait(1.3)
+			end
+		end
+		task.wait(0.6)
+	end
+end)
+
+-- =====================================================
+-- 🎃 HALLOWEEN REBIRTH
+-- =====================================================
+task.spawn(function()
+	while true do
+		if autoHalloweenRebirth then
+			pcall(function()
+				MainRemote:FireServer("HalloweenEvent_Fleshify")
+			end)
+			task.wait(2.5)
+		end
+		task.wait(0.5)
+	end
+end)
+
+-- =====================================================
+-- 🍬 AUTO CANDY PULL (ZONE BYPASS)
+-- =====================================================
+local function getCandyFolder()
+	local content = workspace:WaitForChild("__GAME_CONTENT")
+	local playersCandy = content:WaitForChild("PlayersCandy")
+	return playersCandy:FindFirstChild(tostring(player.UserId))
+end
+
+task.spawn(function()
+	while true do
+		if autoCandy then
+			local folder = getCandyFolder()
+			if folder then
+				local char = player.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					for _, obj in ipairs(folder:GetChildren()) do
+						local part = obj:IsA("BasePart") and obj 
+							or obj:FindFirstChildWhichIsA("BasePart")
+						if part then
+							part.CFrame = hrp.CFrame * CFrame.new(0,0,-2)
+						end
+					end
+				end
+			end
+		end
+		task.wait(0.2)
+	end
+end)
+
+-- =====================================================
 -- 🖥️ UI
 -- =====================================================
 local EventSection = EventTab:Section("500k Event")
-EventSection:Toggle("Auto Shards Farm", function(v) farming=v if v then enableNoclip() else disableNoclip() end end)
-EventSection:Toggle("Auto Upgrade Event", function(v) upgradingEvent=v end)
-EventSection:Toggle("Auto Upgrade Tree", function(v) upgradeTreeOn=v end)
-EventSection:Toggle("Auto Rebirth", function(v) autoRebirth=v end)
+EventSection:Toggle("Auto Shards Farm", function(v)
+	farming = v
+	if v then enableNoclip() else disableNoclip() end
+end)
+EventSection:Toggle("Auto Upgrade Event", function(v) upgradingEvent = v end)
+EventSection:Toggle("Auto Upgrade Tree", function(v) upgradeTreeOn = v end)
+EventSection:Toggle("Auto Rebirth", function(v) autoRebirth = v end)
 
 local ValentineSection = ValentineTab:Section("Valentine Event")
-ValentineSection:Toggle("Auto Upgrade Valentine", function(v) upgradingValentine=v end)
-ValentineSection:Toggle("Auto Upgrade Love", function(v) upgradingLove=v end)
+ValentineSection:Toggle("Auto Upgrade Valentine", function(v) upgradingValentine = v end)
 
-local HalloweenSection = HalloweenTab:Section("👻 Mob Teleport")
+local HalloweenTPSection = HalloweenTab:Section("👻 Mob Teleport")
 for _, mob in ipairs(HALLOWEEN_MOBS) do
-	HalloweenSection:Toggle("TP: "..mob.label, function(state)
+	HalloweenTPSection:Toggle("TP: "..mob.label, function(state)
 		activeMobs[mob.key] = state
 	end)
 end
 
-local UpgradeSection = HalloweenTab:Section("🛠️ Halloween Upgrade & Rebirth")
-UpgradeSection:Toggle("Auto Upgrade Halloween", function(v) upgradingHalloween=v end)
-UpgradeSection:Toggle("Auto Rebirth Halloween", function(v) autoHalloweenRebirth=v end)
-UpgradeSection:Toggle("Auto Collect Candy Corn", function(v) autoCandy=v end)
-UpgradeSection:Toggle("Auto Candy Corn Upgrades", function(v) upgradingCandyCorn=v end)
+local HalloweenUpgradeSection = HalloweenTab:Section("🛠️ Halloween Upgrade & Rebirth")
+HalloweenUpgradeSection:Toggle("Auto Upgrade Halloween", function(v) upgradingHalloween = v end)
+HalloweenUpgradeSection:Toggle("Auto Candy Corn Upgrades", function(v) upgradingCandyCorn = v end)
+HalloweenUpgradeSection:Toggle("Auto Refined Candy Upgrades", function(v) upgradingRefinedCandy = v end)
+HalloweenUpgradeSection:Toggle("Auto Collect Candy Corn", function(v) autoCandy = v end)
+HalloweenUpgradeSection:Toggle("Auto Rebirth Halloween", function(v) autoHalloweenRebirth = v end)
