@@ -1,4 +1,33 @@
 -- =====================================================
+-- 🧹 UI CLEANUP
+-- =====================================================
+pcall(function()
+	for _, gui in ipairs(game.CoreGui:GetChildren()) do
+		if gui:IsA("ScreenGui") and gui.Name:lower():find("lux") then
+			gui:Destroy()
+		end
+	end
+end)
+
+-- =====================================================
+-- 📦 LUXWARE UI
+-- =====================================================
+local Luxware = loadstring(game:HttpGet(
+	"https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"
+))()
+
+local Window = Luxware.CreateWindow("Casino Script", 15275687632)
+
+-- =====================================================
+-- 📑 TABS
+-- =====================================================
+local EventTab     = Window:Tab("🎯 500k Event")
+local ValentineTab = Window:Tab("❤️ Valentine")
+local CreditsTab   = Window:Tab("📜 Credits")
+
+CreditsTab:Section("Credits"):Label("Script by Proxy")
+
+-- =====================================================
 -- 👤 SERVICES
 -- =====================================================
 local Players = game:GetService("Players")
@@ -9,38 +38,44 @@ local player = Players.LocalPlayer
 -- =====================================================
 -- ⚙️ SETTINGS
 -- =====================================================
-local WALK_SPEED = 120
-local WALK_TIMEOUT = 0.15
-local STAND_DELAY = 0.25
+local WALK_SPEED = 60
+local STAND_DELAY = 0.20
+local EVENT_WAIT = 1.0
+local TREE_WAIT  = 0.35
 
 -- =====================================================
--- 📦 SCAN SHARDS SPAWNERS
+-- 📦 SHARDS SPAWNERS
 -- =====================================================
 local function scanSpawners()
-    local positions = {}
-    local folder = workspace:WaitForChild("__GAME_CONTENT"):WaitForChild("ShardsSpawners")
-    for _, obj in ipairs(folder:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            table.insert(positions, obj.Position)
-        end
-    end
-    return positions
+	local positions = {}
+	local content = workspace:WaitForChild("__GAME_CONTENT")
+	local folder = content:WaitForChild("ShardsSpawners")
+
+	for _, obj in ipairs(folder:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			table.insert(positions, obj.Position)
+		end
+	end
+	return positions
 end
 
 local POSITIONS = scanSpawners()
 
+-- =====================================================
+-- 🔍 NEAREST
+-- =====================================================
 local function getNearest(pos)
-    local idx, dist = nil, math.huge
-    for i, p in ipairs(POSITIONS) do
-        local d = (p - pos).Magnitude
-        if d < dist then
-            dist = d
-            idx = i
-        end
-    end
-    if idx then
-        return table.remove(POSITIONS, idx)
-    end
+	local index, dist = nil, math.huge
+	for i, p in ipairs(POSITIONS) do
+		local d = (p - pos).Magnitude
+		if d < dist then
+			dist = d
+			index = i
+		end
+	end
+	if index then
+		return table.remove(POSITIONS, index)
+	end
 end
 
 -- =====================================================
@@ -48,129 +83,243 @@ end
 -- =====================================================
 local noclipConn
 local function enableNoclip()
-    noclipConn = RunService.Stepped:Connect(function()
-        local char = player.Character
-        if not char then return end
-        for _, p in ipairs(char:GetDescendants()) do
-            if p:IsA("BasePart") then
-                p.CanCollide = false
-            end
-        end
-    end)
+	noclipConn = RunService.Stepped:Connect(function()
+		local char = player.Character
+		if not char then return end
+		for _, p in ipairs(char:GetDescendants()) do
+			if p:IsA("BasePart") then
+				p.CanCollide = false
+			end
+		end
+	end)
 end
 
 local function disableNoclip()
-    if noclipConn then
-        noclipConn:Disconnect()
-        noclipConn = nil
-    end
+	if noclipConn then
+		noclipConn:Disconnect()
+		noclipConn = nil
+	end
+end
+
+-- =====================================================
+-- 🚶 SMOOTH WALK
+-- =====================================================
+local function smoothWalkTo(targetPos)
+	local char = player.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	while (hrp.Position - targetPos).Magnitude > 2 do
+		local dir = (targetPos - hrp.Position).Unit
+		hrp.CFrame = hrp.CFrame + dir * WALK_SPEED * task.wait()
+	end
 end
 
 -- =====================================================
 -- 🔁 STATES
 -- =====================================================
 local farming = false
-local upgrading = false
-local originalSpeed = 16
+local upgradingEvent = false
+local upgradingValentine = false
+local upgradeTreeOn = false
+local autoRebirth = false
 
 -- =====================================================
--- 🚶‍♂️ AUTO SHARDS FARM LOOP
+-- 🔼 REMOTE
+-- =====================================================
+local MainRemote = ReplicatedStorage
+	:WaitForChild("Packages")
+	:WaitForChild("Knit")
+	:WaitForChild("Services")
+	:WaitForChild("RemotesService")
+	:WaitForChild("RE")
+	:WaitForChild("MainRemote")
+
+-- =====================================================
+-- 🔁 AUTO FARM
 -- =====================================================
 task.spawn(function()
-    while true do
-        if farming then
-            if #POSITIONS == 0 then
-                POSITIONS = scanSpawners()
-            end
-
-            local char = player.Character
-            local hum = char and char:FindFirstChild("Humanoid")
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-            if hum and hrp then
-                local target = getNearest(hrp.Position)
-                if target then
-                    hum:MoveTo(target)
-                    task.wait(WALK_TIMEOUT)
-                    task.wait(STAND_DELAY)
-                end
-            end
-        end
-        task.wait(0.05)
-    end
+	while true do
+		if farming then
+			if #POSITIONS == 0 then
+				POSITIONS = scanSpawners()
+			end
+			local char = player.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				local target = getNearest(hrp.Position)
+				if target then
+					smoothWalkTo(target)
+					task.wait(STAND_DELAY)
+				end
+			end
+		end
+		task.wait(0.05)
+	end
 end)
 
 -- =====================================================
--- 🔼 EVENT SHARDS UPGRADE LOOP
+-- 🔼 EVENT UPGRADES (500k)
 -- =====================================================
-local UpgradeRemote = ReplicatedStorage
-    :WaitForChild("Packages")
-    :WaitForChild("Knit")
-    :WaitForChild("Services")
-    :WaitForChild("RemotesService")
-    :WaitForChild("RE")
-    :WaitForChild("MainRemote")
-
-local UpgradeList = {
-    "Event Shards 2",
-    "Event Luck",
-    "Event Bulk",
-    "Event Crystals",
-    "Event Crystal Chance"
+local EVENT_UPGRADES = {
+	"Event Shards",
+	"Event Shards 2",
+	"Event Luck",
+	"Event Bulk",
+	"Event Crystals",
+	"Event Crystal Chance"
 }
 
 task.spawn(function()
-    while true do
-        if upgrading then
-            for _, up in ipairs(UpgradeList) do
-                if not upgrading then break end
-                pcall(function()
-                    UpgradeRemote:FireServer("Upgrade", "Event Shards", up)
-                end)
-                task.wait(0.35)
-            end
-        end
-        task.wait(0.2)
-    end
+	while true do
+		if upgradingEvent then
+			for _, upg in ipairs(EVENT_UPGRADES) do
+				pcall(function()
+					MainRemote:FireServer("UpgradeAll", "Event Shards", upg)
+				end)
+				task.wait(EVENT_WAIT)
+			end
+		end
+		task.wait(0.5)
+	end
 end)
 
 -- =====================================================
--- 🖥️ INTEGRATION IN LUXWARE UI
+-- ❤️ VALENTINE UPGRADES
+-- 👉 NAMES KANNST DU SELBST ÄNDERN
 -- =====================================================
-local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
-local Luxt = Luxtl.CreateWindow("Penis Script", 6105620301)
-local mainTab = Luxt:Tab("General", 6087485864)
-local eventTab = Luxt:Tab("500k Event")
-local combatTab = Luxt:Tab("Combat")
-local creditsTab = Luxt:Tab("Credits")
+local VALENTINE_UPGRADES = {
+	"Infinite Hearts",
+	"Valentine Bulk",
+	"Valentine Shard Chance",
+	"Valentine Infinite Love",
+	"Valentine Boost"
+}
 
--- Event Toggles
-eventTab:Toggle("Auto Shards Farm", false, function(state)
-    farming = state
-    local char = player.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    if hum then
-        if state then
-            originalSpeed = hum.WalkSpeed
-            hum.WalkSpeed = WALK_SPEED
-            enableNoclip()
-        else
-            hum.WalkSpeed = originalSpeed
-            disableNoclip()
-        end
-    end
-end)
-
-eventTab:Toggle("Auto Upgrade Event Shards", false, function(state)
-    upgrading = state
+task.spawn(function()
+	while true do
+		if upgradingValentine then
+			for _, upg in ipairs(VALENTINE_UPGRADES) do
+				pcall(function()
+					MainRemote:FireServer("UpgradeAll", "Hearts", upg)
+				end)
+				task.wait(1.2) -- extra langsam
+			end
+		end
+		task.wait(0.6)
+	end
 end)
 
 -- =====================================================
--- CREDITS
+-- ❤️ LOVE UPGRADES
+-- 👉 NAMES KANNST DU SELBST ÄNDERN
 -- =====================================================
-local cf = creditsTab:Section("Main Credits")
-cf:Credit("Luxt: Main Coding")
-local cf1 = creditsTab:Section("UI Credits")
-cf1:Credit("xHeptc: UI Library")
-local cf2 = creditsTab:Section("Helping Credits")
-cf2:Credit("Salad: Helping")
+local LOVE_UPGRADES = {
+	"Hearts",
+	"Love",
+	"Clicks",
+	"Clicker Tokens",
+	"Fish Multiplier",
+    "Light Points",
+    "Madness",
+    "Sins",
+    "Sunite",
+    "Rune Bulk",
+    "Rune Luck",
+
+}
+
+task.spawn(function()
+	while true do
+		if upgradingLove then
+			for _, upg in ipairs(LOVE_UPGRADES) do
+				pcall(function()
+					MainRemote:FireServer("UpgradeAll", "Love", upg)
+				end)
+				task.wait(1.2) -- extra langsam
+			end
+		end
+		task.wait(0.6)
+	end
+end)
+
+-- =====================================================
+-- 🌳 AUTO UPGRADE TREE
+-- =====================================================
+local TREE_UPGRADES = {
+	"Event1_Start",
+	"Event1_Shards1",
+	"Event1_Shards2",
+	"Event1_EventLuck1",
+	"Event1_EventLuck2",
+	"Event1_EventBulk",
+	"Event1_Shards3",
+	"Event1_Shards4"
+}
+
+task.spawn(function()
+	while true do
+		if upgradeTreeOn then
+			for _, name in ipairs(TREE_UPGRADES) do
+				pcall(function()
+					MainRemote:FireServer("UpgradeTree", name)
+				end)
+				task.wait(TREE_WAIT)
+			end
+		end
+		task.wait(0.6)
+	end
+end)
+
+-- =====================================================
+-- 🔁 AUTO REBIRTH
+-- =====================================================
+task.spawn(function()
+	while true do
+		if autoRebirth then
+			pcall(function()
+				MainRemote:FireServer("Event1_Ascend")
+			end)
+			task.wait(2)
+		end
+		task.wait(0.5)
+	end
+end)
+
+-- =====================================================
+-- 🖥️ UI – 500k EVENT
+-- =====================================================
+local EventSection = EventTab:Section("500k Event")
+
+EventSection:Toggle("Auto Shards Farm", function(v)
+	farming = v
+	if v then enableNoclip() else disableNoclip() end
+end)
+
+EventSection:Toggle("Auto Upgrade Event", function(v)
+	upgradingEvent = v
+end)
+
+EventSection:Toggle("Auto Upgrade Tree", function(v)
+	upgradeTreeOn = v
+end)
+
+EventSection:Toggle("Auto Rebirth", function(v)
+	autoRebirth = v
+end)
+
+-- =====================================================
+-- 🖥️ UI – VALENTINE
+-- =====================================================
+local ValentineSection = ValentineTab:Section("Valentine Event")
+
+ValentineSection:Label("Auto Valentine Upgrades")
+
+ValentineSection:Toggle("Auto Upgrade Valentine", function(v)
+	upgradingValentine = v
+end)
+
+ValentineSection:Toggle("Auto Upgrade Love", function(v)
+	upgradingLove = v
+end)
