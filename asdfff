@@ -291,7 +291,7 @@ local HALLOWEEN_MOBS = {
 	{key="Clue", label="Clue 10"},
 	{key="Lucky", label="Lucky 90"},
 	{key="Popebaki", label="Popebaki 700"},
-	{key="Ninja", label="Ninja 5K"},
+	{key="Ninia", label="Ninia 5K"},
 	{key="Pixelated", label="Pixelated 45K"},
 	{key="Nuke", label="Nuke 385K"},
 	{key="Blizz", label="Blizz 3.25M"},
@@ -309,12 +309,14 @@ local HALLOWEEN_MOBS = {
 
 local HALLOWEEN_UPGRADES = {
 	"Flesh Multiplier",
+    "Flesh Multiplier II",
 	"Mob Damage Multiplier",
 	"Attack Speed",
 	"Halloween Bulk",
 	"Halloween Luck",
 	"Sword Enchants Gems Chance",
 	"Candy Corn Multiplier III",
+    "Unlock Candy Corn",
 	"Refined Candy Multiplier III",
 	"Factorized Candy Multiplier V",
 }
