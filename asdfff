@@ -102,7 +102,7 @@ local function disableNoclip()
 end
 
 -- =====================================================
--- 🚶 SMOOTH WALK
+-- 🚶 SMOOTH WALK (500k FARM)
 -- =====================================================
 local function smoothWalkTo(targetPos)
 	local char = player.Character
@@ -128,6 +128,7 @@ local autoRebirth = false
 local upgradingHalloween = false
 local autoHalloweenRebirth = false
 local autoCandy = false
+local upgradingCandyCorn = false
 
 -- =====================================================
 -- 🔼 REMOTE
@@ -190,7 +191,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🌳 AUTO UPGRADE TREE
+-- 🌳 AUTO UPGRADE TREE (LANGSAM & STABIL)
 -- =====================================================
 local TREE_UPGRADES = {
 	"Event1_Start",
@@ -258,17 +259,9 @@ task.spawn(function()
 end)
 
 local LOVE_UPGRADES = {
-	"Hearts",
-	"Love",
-	"Clicks",
-	"Clicker Tokens",
-	"Fish Multiplier",
-    "Light Points",
-    "Madness",
-    "Sins",
-    "Sunite",
-    "Rune Bulk",
-    "Rune Luck",
+	"Hearts","Love","Clicks","Clicker Tokens",
+	"Fish Multiplier","Light Points","Madness",
+	"Sins","Sunite","Rune Bulk","Rune Luck",
 }
 
 task.spawn(function()
@@ -286,7 +279,7 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🎃 HALLOWEEN MOBS & UPGRADES
+-- 🎃 HALLOWEEN MOBS (TP WIEDER DRIN!)
 -- =====================================================
 local HALLOWEEN_MOBS = {
 	{key="Clue", label="Clue 10"},
@@ -308,21 +301,7 @@ local HALLOWEEN_MOBS = {
 	{key="Ghoulax", label="Ghoulax BOSS"},
 }
 
-local HALLOWEEN_UPGRADES = {
-	"Flesh Multiplier",
-    "Flesh Multiplier II",
-	"Mob Damage Multiplier",
-	"Attack Speed",
-	"Halloween Bulk",
-	"Halloween Luck",
-	"Sword Enchants Gems Chance",
-	"Candy Corn Multiplier III",
-    "Unlock Candy Corn",
-	"Refined Candy Multiplier III",
-	"Factorized Candy Multiplier V",
-}
-
-local BOSS = { ["0hxsn"]=true, ["Connor"]=true, ["Ghoulax"]=true }
+local BOSS = {["0hxsn"]=true,["Connor"]=true,["Ghoulax"]=true}
 local activeMobs = {}
 local mobIndex = {}
 
@@ -338,7 +317,6 @@ local function getMobTargets(mobName)
 	return results
 end
 
--- Mob teleport loop
 task.spawn(function()
 	while true do
 		for mobName, enabled in pairs(activeMobs) do
@@ -350,43 +328,62 @@ task.spawn(function()
 					local target = targets[BOSS[mobName] and 1 or mobIndex[mobName]]
 					local char = player.Character
 					local hrp = char and char:FindFirstChild("HumanoidRootPart")
-					if hrp and target then hrp.CFrame = target.CFrame * CFrame.new(0,0,-4) end
+					if hrp and target then
+						hrp.CFrame = target.CFrame * CFrame.new(0,0,-4)
+					end
 				end
-				task.wait(BOSS[mobName] and 0.6 or 0.35)
+				task.wait(BOSS[mobName] and 0.7 or 0.35)
 			end
 		end
 		task.wait(0.15)
 	end
 end)
 
--- Halloween upgrades loop
+-- =====================================================
+-- 🎃 HALLOWEEN UPGRADES + REBIRTH
+-- =====================================================
+local HALLOWEEN_UPGRADES = {
+	"Flesh Multiplier",
+	"Flesh Multiplier II",
+	"Mob Damage Multiplier",
+	"Attack Speed",
+	"Halloween Bulk",
+	"Halloween Luck",
+	"Sword Enchants Gems Chance",
+	"Candy Corn Multiplier III",
+	"Unlock Candy Corn",
+	"Refined Candy Multiplier III",
+	"Factorized Candy Multiplier V",
+}
+
 task.spawn(function()
 	while true do
 		if upgradingHalloween then
 			for _, upg in ipairs(HALLOWEEN_UPGRADES) do
-				pcall(function() MainRemote:FireServer("UpgradeAll", "Flesh", upg) end)
-				task.wait(0.8)
+				pcall(function()
+					MainRemote:FireServer("UpgradeAll", "Flesh", upg)
+				end)
+				task.wait(0.9)
 			end
 		end
 		task.wait(0.5)
 	end
 end)
 
--- Halloween auto rebirth loop
 task.spawn(function()
 	while true do
 		if autoHalloweenRebirth then
-			local args = {"HalloweenEvent_Fleshify"}
-			pcall(function() MainRemote:FireServer(unpack(args)) end)
-			task.wait(2)
+			pcall(function()
+				MainRemote:FireServer("HalloweenEvent_Fleshify")
+			end)
+			task.wait(2.5)
 		end
 		task.wait(0.5)
 	end
 end)
 
 -- =====================================================
--- 🍬 HALLOWEEN AUTO CANDY (PlayersCandy Pull)
--- basiert auf deinem funktionierenden Script
+-- 🍬 AUTO CANDY PULL (STABIL)
 -- =====================================================
 local function getCandyFolder()
 	local content = workspace:WaitForChild("__GAME_CONTENT")
@@ -401,60 +398,65 @@ task.spawn(function()
 			if folder then
 				local char = player.Character
 				local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
 				if hrp then
 					for _, obj in ipairs(folder:GetChildren()) do
-						local part = nil
-
-						if obj:IsA("BasePart") then
-							part = obj
-						elseif obj:IsA("Model") then
-							part = obj:FindFirstChild("Cube") 
-								or obj:FindFirstChildWhichIsA("BasePart")
-						end
-
+						local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
 						if part then
-							-- leicht versetzt -> verhindert "Tanzen" & Lag
-							part.CFrame = hrp.CFrame * CFrame.new(0, 0, -2)
+							part.CFrame = hrp.CFrame * CFrame.new(0,0,-2)
 						end
 					end
 				end
 			end
 		end
-		task.wait(0.2) -- stabil & serverfreundlich
+		task.wait(0.2)
 	end
 end)
 
+-- =====================================================
+-- 🍬 CANDY CORN UPGRADES (NEU)
+-- =====================================================
+local CANDY_CORN_UPGRADES = {
+	"Pickup Radius",
+	"Candy Corn Multiplier",
+	"Candy Corn Spawn Rate",
+}
+
+task.spawn(function()
+	while true do
+		if upgradingCandyCorn then
+			for _, upg in ipairs(CANDY_CORN_UPGRADES) do
+				pcall(function()
+					MainRemote:FireServer("UpgradeAll", "Candy Corn", upg)
+				end)
+				task.wait(1.2)
+			end
+		end
+		task.wait(0.6)
+	end
+end)
 
 -- =====================================================
 -- 🖥️ UI
 -- =====================================================
--- 500k Event
 local EventSection = EventTab:Section("500k Event")
 EventSection:Toggle("Auto Shards Farm", function(v) farming=v if v then enableNoclip() else disableNoclip() end end)
 EventSection:Toggle("Auto Upgrade Event", function(v) upgradingEvent=v end)
 EventSection:Toggle("Auto Upgrade Tree", function(v) upgradeTreeOn=v end)
 EventSection:Toggle("Auto Rebirth", function(v) autoRebirth=v end)
 
--- Valentine
 local ValentineSection = ValentineTab:Section("Valentine Event")
 ValentineSection:Toggle("Auto Upgrade Valentine", function(v) upgradingValentine=v end)
 ValentineSection:Toggle("Auto Upgrade Love", function(v) upgradingLove=v end)
 
--- Halloween
 local HalloweenSection = HalloweenTab:Section("👻 Mob Teleport")
-local UpgradeSection    = HalloweenTab:Section("🛠️ Halloween Upgrade & Rebirth")
 for _, mob in ipairs(HALLOWEEN_MOBS) do
-	HalloweenSection:Toggle("TP: "..mob.label, function(state) activeMobs[mob.key]=state end)
+	HalloweenSection:Toggle("TP: "..mob.label, function(state)
+		activeMobs[mob.key] = state
+	end)
 end
+
+local UpgradeSection = HalloweenTab:Section("🛠️ Halloween Upgrade & Rebirth")
 UpgradeSection:Toggle("Auto Upgrade Halloween", function(v) upgradingHalloween=v end)
 UpgradeSection:Toggle("Auto Rebirth Halloween", function(v) autoHalloweenRebirth=v end)
-
--- =====================================================
--- 🍬 HALLOWEEN UPGRADE & REBIRTH (NEUE SEKTION)
--- =====================================================
-local HalloweenUpgradeSection = HalloweenTab:Section("🍬 Candy Porn")
-
-HalloweenUpgradeSection:Toggle("Auto Collect Candy Porn", function(v)
-	autoCandy = v
-end)
+UpgradeSection:Toggle("Auto Collect Candy Corn", function(v) autoCandy=v end)
+UpgradeSection:Toggle("Auto Candy Corn Upgrades", function(v) upgradingCandyCorn=v end)
