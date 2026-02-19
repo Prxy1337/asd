@@ -24,6 +24,7 @@ local Window = Luxware.CreateWindow("卐Führer Script卐", 15275687632)
 local EventTab     = Window:Tab("🎯 500k Event")
 local ValentineTab = Window:Tab("❤️ Valentine")
 local HalloweenTab = Window:Tab("🎃 Halloween")
+local ChristmasTab = Window:Tab("🎄 Christmas")
 local CreditsTab   = Window:Tab("📜 Credits")
 
 CreditsTab:Section("Credits"):Label("Full Script fixed & optimized + Auto Insert")
@@ -54,6 +55,7 @@ local upgradingValentine = false
 local upgradingLove = false
 local upgradeTreeOn = false
 local autoRebirth = false
+local farmingCandyCanes = false
 
 -- Halloween
 local upgradingHalloween = false
@@ -107,6 +109,48 @@ local function getNearest(pos)
 		return table.remove(POSITIONS, index)
 	end
 end
+
+-- =====================================================
+-- 🎄 CHRISTMAS CANDY CANES SPAWNERS
+-- (workspace.__GAME_CONTENT.CandyCanesSpawners)
+-- =====================================================
+local function scanCandyCanes()
+	local positions = {}
+
+	local content = workspace:WaitForChild("__GAME_CONTENT")
+	local folder = content:WaitForChild("CandyCanesSpawners")
+
+	for _, obj in ipairs(folder:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			table.insert(positions, obj.Position)
+		end
+	end
+
+	return positions
+end
+
+local CANDYCANE_POSITIONS = scanCandyCanes()
+
+-- =====================================================
+-- 🔍 NEAREST CANDY CANE
+-- =====================================================
+local function getNearestCandyCane(pos)
+	local index, dist = nil, math.huge
+
+	for i, p in ipairs(CANDYCANE_POSITIONS) do
+		local d = (p - pos).Magnitude
+		if d < dist then
+			dist = d
+			index = i
+		end
+	end
+
+	if index then
+		return table.remove(CANDYCANE_POSITIONS, index)
+	end
+end
+
+
 
 -- =====================================================
 -- 🧱 NOCLIP
@@ -168,6 +212,33 @@ task.spawn(function()
 		task.wait(0.05)
 	end
 end)
+
+-- =====================================================
+-- 🎄 AUTO FARM CANDY CANES (CHRISTMAS EVENT)
+-- =====================================================
+task.spawn(function()
+	while true do
+		if farmingCandyCanes then
+			if #CANDYCANE_POSITIONS == 0 then
+				CANDYCANE_POSITIONS = scanCandyCanes()
+			end
+
+			local char = player.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+			if hrp then
+				local target = getNearestCandyCane(hrp.Position)
+				if target then
+					-- Smooth Walk = sicher einsammeln (kein Teleport Bug)
+					smoothWalkTo(target)
+					task.wait(0.15) -- wichtig damit es eingesammelt wird
+				end
+			end
+		end
+		task.wait(0.05)
+	end
+end)
+
 
 -- =====================================================
 -- 🔼 500k EVENT UPGRADES
@@ -565,6 +636,23 @@ for _, mob in ipairs(HALLOWEEN_MOBS) do
 end
 
 local HalloweenUpgradeSection = HalloweenTab:Section("🛠️ Halloween Upgrade & Rebirth")
+
+-- =====================================================
+-- 🎄 CHRISTMAS TAB (CANDY CANES)
+-- =====================================================
+
+local ChristmasSection = ChristmasTab:Section("Candy Cane Farm")
+
+ChristmasSection:Toggle("Auto Farm Candy Canes", function(v)
+	farmingCandyCanes = v
+
+	if v then
+		enableNoclip() -- wichtig für Wände / Map Split
+	else
+		disableNoclip()
+	end
+end)
+
 
 HalloweenUpgradeSection:Label("🎃 Halloween Core")
 HalloweenUpgradeSection:Toggle("Auto Upgrade Halloween", function(v) upgradingHalloween = v end)
