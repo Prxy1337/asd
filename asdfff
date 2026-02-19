@@ -350,7 +350,7 @@ task.spawn(function()
 						hrp.CFrame = target.CFrame * CFrame.new(0,0,-4)
 					end
 				end
-				task.wait(BOSS[mobName] and 0.7 or 0.35)
+				task.wait(BOSS[mobName] and 0.05 or 0.05)
 			end
 		end
 		task.wait(0.05)
