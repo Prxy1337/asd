@@ -641,7 +641,7 @@ local HalloweenUpgradeSection = HalloweenTab:Section("🛠️ Halloween Upgrade 
 -- 🎄 CHRISTMAS TAB (CANDY CANES)
 -- =====================================================
 
-local ChristmasSection = ChristmasTab:Section("Candy Cane Farm")
+local ChristmasSection = ChristmasTab:Section("Auto Candy Cane")
 
 ChristmasSection:Toggle("Auto Farm Candy Canes", function(v)
 	farmingCandyCanes = v
