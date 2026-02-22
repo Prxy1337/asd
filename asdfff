@@ -614,40 +614,23 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🌌 SPACE WORLD META CHAIN (REQUIREMENT SYSTEM FIX)
--- Moonlite -> Marsite -> Venusite -> etc.
+-- 🌌 SPACE WORLD CHAIN TELEPORT (INTEGRATED)
+-- Moonlite -> Marsite -> Venusite (Manual Chain System)
 -- =====================================================
 
-local autoSpaceMetaChain = false
-local SPACE_STEP_DELAY = 0.6 -- WICHTIG: Requirement Registrierung (nicht zu niedrig!)
+local STEP_DELAY = 0.55 -- Requirement Registrierung (sehr wichtig)
+local TP_HEIGHT = 1.5
 
 local spaceButtonCache = {}
-local spaceChain = {}
+local spaceChainList = {}
+local autoSpaceChain = false
 
 local SpaceButtonFolder = workspace:WaitForChild("__GAME_CONTENT")
 	:WaitForChild("Boards")
 	:WaitForChild("SpaceWorld")
 	:WaitForChild("ButtonSim")
 
--- Reihenfolge = META Progression (verhindert Missing Requirements)
-local SPACE_PROGRESSION = {
-	"Moonlite",
-	"Marsite",
-	"Venusite",
-	"Mercuryte",
-	"Jupiterite",
-	"Saturnite",
-	"Uranite",
-	"Neptunite",
-	"Plutite",
-	"Sunite"
-}
-
-local function cleanSpaceName(name)
-	return name:gsub("%s*%b()", "")
-end
-
--- Findet echten Button Trigger (ZONE_Part laut deinem Screenshot)
+-- 🔍 ZONE_Part Detection (wie in deinem Screenshot)
 local function getSpaceZonePart(folder)
 	local zone = folder:FindFirstChild("ZONE_Part", true)
 	if zone and zone:IsA("BasePart") then
@@ -656,72 +639,65 @@ local function getSpaceZonePart(folder)
 	return nil
 end
 
+local function cleanSpaceName(name)
+	return name:gsub("%s*%b()", "")
+end
+
+-- Cache Buttons (skip Dirtrite wie du gesagt hast)
 local function cacheSpaceButtons()
 	table.clear(spaceButtonCache)
 
-	for _, folder in ipairs(SpaceButtonFolder:GetChildren()) do
-		local clean = cleanSpaceName(folder.Name)
-
-		-- Dirtrite skippen (kein echter Button laut dir)
-		if clean ~= "Dirtrite" then
-			local zone = getSpaceZonePart(folder)
+	for _, f in ipairs(SpaceButtonFolder:GetChildren()) do
+		local name = cleanSpaceName(f.Name)
+		if name ~= "Dirtrite" then
+			local zone = getSpaceZonePart(f)
 			if zone then
-				spaceButtonCache[clean] = zone
+				spaceButtonCache[name] = zone
 			end
-		end
-	end
-end
-
-local function buildSpaceChain()
-	table.clear(spaceChain)
-
-	for _, name in ipairs(SPACE_PROGRESSION) do
-		if spaceButtonCache[name] then
-			table.insert(spaceChain, name)
 		end
 	end
 end
 
 cacheSpaceButtons()
-buildSpaceChain()
 
--- Re-cache wenn Buttons nachladen (Streaming / World Load)
+-- Falls Buttons nachladen (Streaming / Teleport zur Welt)
 SpaceButtonFolder.ChildAdded:Connect(function()
 	task.wait(0.5)
 	cacheSpaceButtons()
-	buildSpaceChain()
 end)
 
--- Stabiler Requirement Teleport (kein Buff Verlust)
+-- 🧱 Stabiler Requirement Teleport (kein Resource Verlust)
 local function spaceStepTeleport(part)
 	local char = player.Character
 	if not char then return end
-
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	-- Anti Fly / Drift Fix (wichtig wegen Zonen)
+	-- Anti Drift / Anti Fly
 	hrp.AssemblyLinearVelocity = Vector3.zero
 	hrp.AssemblyAngularVelocity = Vector3.zero
 
-	-- Direkt in die Trigger Zone stellen (nicht daneben!)
-	hrp.CFrame = part.CFrame + Vector3.new(0, 1.5, 0)
+	-- Direkt in Trigger Zone (wichtig für Requirements)
+	hrp.CFrame = part.CFrame + Vector3.new(0, TP_HEIGHT, 0)
 
-	-- EXTREM WICHTIG:
-	-- Ohne Delay verliert man Moonlite/Marsite Requirements
-	task.wait(SPACE_STEP_DELAY)
+	-- Server muss registrieren dass du "drauf stehst"
+	task.wait(STEP_DELAY)
 end
 
--- META AUTO CHAIN LOOP (Requirement Safe)
+-- 🔁 CHAIN EXECUTOR (Moonlite -> Marsite -> Venusite)
+local function executeSpaceChain()
+	for _, name in ipairs(spaceChainList) do
+		local part = spaceButtonCache[name]
+		if part then
+			spaceStepTeleport(part)
+		end
+	end
+end
+
 task.spawn(function()
 	while true do
-		if autoSpaceMetaChain and #spaceChain > 0 then
-			for _, name in ipairs(spaceChain) do
-				local part = spaceButtonCache[name]
-				if part then
-					spaceStepTeleport(part)
-				end
-			end
+		if autoSpaceChain and #spaceChainList > 0 then
+			executeSpaceChain()
 		end
 		task.wait(0.05)
 	end
@@ -783,16 +759,26 @@ HalloweenUpgradeSection:Toggle("Auto Insert Refined Candy", function(v) autoInse
 HalloweenUpgradeSection:Toggle("Auto Factorized Candy Upgrades", function(v) upgradingFactorizedCandy = v end)
 
 -- =====================================================
--- 🌌 SPACE WORLD UI (META CHAIN)
+-- 🌌 SPACE WORLD UI (CHAIN TELEPORT)
 -- =====================================================
-local SpaceSection = SpaceWorldTab:Section("Space World Chain System")
+local SpaceWorldSection = SpaceWorldTab:Section("Requirement Chain Teleport")
 
-SpaceSection:Label("Requirement Safe Meta Chain")
-SpaceSection:Label("Auto: Moonlite -> Marsite -> Venusite -> ...")
+SpaceWorldSection:Label("Add Buttons in Order:")
+SpaceWorldSection:Label("Example: Moonlite -> Marsite -> Venusite")
 
-SpaceSection:Toggle("Auto Meta Chain (All Buttons)", function(v)
-	autoSpaceMetaChain = v
+-- Dynamische Button Liste (aus ButtonSim)
+for name, _ in pairs(spaceButtonCache) do
+	SpaceWorldSection:Button("Add to Chain: "..name, function()
+		table.insert(spaceChainList, name)
+	end)
+end
+
+SpaceWorldSection:Button("Clear Chain", function()
+	table.clear(spaceChainList)
 end)
 
-SpaceSection:Label("Fix for Missing Resources:")
-SpaceSection:Label("Stands on each button to keep requirements")
+SpaceWorldSection:Toggle("Auto Chain Teleport", function(v)
+	autoSpaceChain = v
+end)
+
+SpaceWorldSection:Label("Current Chain updates live below:")
