@@ -25,6 +25,7 @@ local EventTab     = Window:Tab("🎯 500k Event")
 local ValentineTab = Window:Tab("❤️ Valentine")
 local HalloweenTab = Window:Tab("🎃 Halloween")
 local ChristmasTab = Window:Tab("🎄 Christmas")
+local SpaceWorldTab = Window:Tab("🌌 Space World")
 local CreditsTab   = Window:Tab("📜 Credits")
 
 CreditsTab:Section("Credits"):Label("Full Script fixed & optimized + Auto Insert")
@@ -613,6 +614,120 @@ task.spawn(function()
 end)
 
 -- =====================================================
+-- 🌌 SPACE WORLD META CHAIN (REQUIREMENT SYSTEM FIX)
+-- Moonlite -> Marsite -> Venusite -> etc.
+-- =====================================================
+
+local autoSpaceMetaChain = false
+local SPACE_STEP_DELAY = 0.6 -- WICHTIG: Requirement Registrierung (nicht zu niedrig!)
+
+local spaceButtonCache = {}
+local spaceChain = {}
+
+local SpaceButtonFolder = workspace:WaitForChild("__GAME_CONTENT")
+	:WaitForChild("Boards")
+	:WaitForChild("SpaceWorld")
+	:WaitForChild("ButtonSim")
+
+-- Reihenfolge = META Progression (verhindert Missing Requirements)
+local SPACE_PROGRESSION = {
+	"Moonlite",
+	"Marsite",
+	"Venusite",
+	"Mercuryte",
+	"Jupiterite",
+	"Saturnite",
+	"Uranite",
+	"Neptunite",
+	"Plutite",
+	"Sunite"
+}
+
+local function cleanSpaceName(name)
+	return name:gsub("%s*%b()", "")
+end
+
+-- Findet echten Button Trigger (ZONE_Part laut deinem Screenshot)
+local function getSpaceZonePart(folder)
+	local zone = folder:FindFirstChild("ZONE_Part", true)
+	if zone and zone:IsA("BasePart") then
+		return zone
+	end
+	return nil
+end
+
+local function cacheSpaceButtons()
+	table.clear(spaceButtonCache)
+
+	for _, folder in ipairs(SpaceButtonFolder:GetChildren()) do
+		local clean = cleanSpaceName(folder.Name)
+
+		-- Dirtrite skippen (kein echter Button laut dir)
+		if clean ~= "Dirtrite" then
+			local zone = getSpaceZonePart(folder)
+			if zone then
+				spaceButtonCache[clean] = zone
+			end
+		end
+	end
+end
+
+local function buildSpaceChain()
+	table.clear(spaceChain)
+
+	for _, name in ipairs(SPACE_PROGRESSION) do
+		if spaceButtonCache[name] then
+			table.insert(spaceChain, name)
+		end
+	end
+end
+
+cacheSpaceButtons()
+buildSpaceChain()
+
+-- Re-cache wenn Buttons nachladen (Streaming / World Load)
+SpaceButtonFolder.ChildAdded:Connect(function()
+	task.wait(0.5)
+	cacheSpaceButtons()
+	buildSpaceChain()
+end)
+
+-- Stabiler Requirement Teleport (kein Buff Verlust)
+local function spaceStepTeleport(part)
+	local char = player.Character
+	if not char then return end
+
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	-- Anti Fly / Drift Fix (wichtig wegen Zonen)
+	hrp.AssemblyLinearVelocity = Vector3.zero
+	hrp.AssemblyAngularVelocity = Vector3.zero
+
+	-- Direkt in die Trigger Zone stellen (nicht daneben!)
+	hrp.CFrame = part.CFrame + Vector3.new(0, 1.5, 0)
+
+	-- EXTREM WICHTIG:
+	-- Ohne Delay verliert man Moonlite/Marsite Requirements
+	task.wait(SPACE_STEP_DELAY)
+end
+
+-- META AUTO CHAIN LOOP (Requirement Safe)
+task.spawn(function()
+	while true do
+		if autoSpaceMetaChain and #spaceChain > 0 then
+			for _, name in ipairs(spaceChain) do
+				local part = spaceButtonCache[name]
+				if part then
+					spaceStepTeleport(part)
+				end
+			end
+		end
+		task.wait(0.05)
+	end
+end)
+
+-- =====================================================
 -- 🖥️ UI
 -- =====================================================
 local EventSection = EventTab:Section("500k Event")
@@ -666,3 +781,18 @@ HalloweenUpgradeSection:Label("🍭 Refined Candy")
 HalloweenUpgradeSection:Toggle("Auto Refined Candy Upgrades", function(v) upgradingRefinedCandy = v end)
 HalloweenUpgradeSection:Toggle("Auto Insert Refined Candy", function(v) autoInsertFactorized = v end)
 HalloweenUpgradeSection:Toggle("Auto Factorized Candy Upgrades", function(v) upgradingFactorizedCandy = v end)
+
+-- =====================================================
+-- 🌌 SPACE WORLD UI (META CHAIN)
+-- =====================================================
+local SpaceSection = SpaceWorldTab:Section("Space World Chain System")
+
+SpaceSection:Label("Requirement Safe Meta Chain")
+SpaceSection:Label("Auto: Moonlite -> Marsite -> Venusite -> ...")
+
+SpaceSection:Toggle("Auto Meta Chain (All Buttons)", function(v)
+	autoSpaceMetaChain = v
+end)
+
+SpaceSection:Label("Fix for Missing Resources:")
+SpaceSection:Label("Stands on each button to keep requirements")
