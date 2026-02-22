@@ -841,107 +841,106 @@ task.spawn(function()
     end
 end)
 
--- 🖥️ DRAGGABLE UI
+-- 🖥️ DRAGGABLE UI (FIXED WITH TOPBAR)
 local gui = Instance.new("ScreenGui")
 gui.Name = "ChainTP"
 gui.Parent = game.CoreGui
 gui.ResetOnSpawn = false
 
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 260, 0, 450)
+main.Position = UDim2.new(0.3, 0, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+-- 🔝 TOPBAR (DRAG AREA)
+local topbar = Instance.new("Frame")
+topbar.Size = UDim2.new(1, 0, 0, 32)
+topbar.BackgroundColor3 = Color3.fromRGB(30,30,30)
+topbar.BorderSizePixel = 0
+topbar.Parent = main
+topbar.Active = true
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -10, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "🌌 Chain Teleport Tool (Drag Me)"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topbar
+
+-- ❌ CLOSE BUTTON (Bonus)
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 30, 1, 0)
+close.Position = UDim2.new(1, -30, 0, 0)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(120,40,40)
+close.TextColor3 = Color3.new(1,1,1)
+close.Parent = topbar
+
+close.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- 📦 CONTENT FRAME (für Layout)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 450)
-frame.Position = UDim2.new(0.3, 0, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Parent = gui
-
--- DRAG SYSTEM (SEHR SMOOTH)
-local dragging = false
-local dragInput, dragStart, startPos
-
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end)
+frame.Size = UDim2.new(1, 0, 1, -32)
+frame.Position = UDim2.new(0, 0, 0, 32)
+frame.BackgroundTransparency = 1
+frame.Parent = main
 
 local layout = Instance.new("UIListLayout", frame)
 layout.Padding = UDim.new(0,4)
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,35)
-title.Text = "🌌 Chain Teleport Tool (Draggable)"
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
-title.TextScaled = true
+-- 🧲 REAL DRAG SYSTEM (TOPBAR ONLY - STABLE)
+local UserInputService = game:GetService("UserInputService")
 
-local chainLabel = Instance.new("TextLabel", frame)
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+topbar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+topbar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragStart = dragStart
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- CHAIN LABEL
+local chainLabel = Instance.new("TextLabel")
 chainLabel.Size = UDim2.new(1,0,0,40)
 chainLabel.Text = "Chain: (empty)"
 chainLabel.TextColor3 = Color3.new(1,1,1)
 chainLabel.BackgroundTransparency = 1
 chainLabel.TextWrapped = true
-
-for name, _ in pairs(buttonCache) do
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(1,-6,0,30)
-    btn.Text = "Add to Chain: "..name
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    btn.TextColor3 = Color3.new(1,1,1)
-
-    btn.MouseButton1Click:Connect(function()
-        table.insert(chainList, name)
-        btn.Text = "✓ "..name
-        chainLabel.Text = "Chain: "..table.concat(chainList, " -> ")
-    end)
-end
-
-local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.new(1,-6,0,35)
-toggle.Text = "Auto Chain: OFF"
-toggle.BackgroundColor3 = Color3.fromRGB(120,50,50)
-toggle.TextColor3 = Color3.new(1,1,1)
-
-toggle.MouseButton1Click:Connect(function()
-    autoChain = not autoChain
-    toggle.Text = "Auto Chain: "..(autoChain and "ON" or "OFF")
-end)
-
-local clear = Instance.new("TextButton", frame)
-clear.Size = UDim2.new(1,-6,0,30)
-clear.Text = "Clear Chain"
-clear.BackgroundColor3 = Color3.fromRGB(80,80,80)
-clear.TextColor3 = Color3.new(1,1,1)
-
-clear.MouseButton1Click:Connect(function()
-    table.clear(chainList)
-    chainLabel.Text = "Chain: (empty)"
+chainLabel.Parent = frame
 end)
 ]])()
 end)
