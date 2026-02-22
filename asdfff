@@ -777,35 +777,59 @@ HalloweenUpgradeSection:Toggle("Auto Insert Refined Candy", function(v) autoInse
 HalloweenUpgradeSection:Toggle("Auto Factorized Candy Upgrades", function(v) upgradingFactorizedCandy = v end)
 
 -- =====================================================
--- 🌌 SPACE WORLD UI (DYNAMIC CHAIN SELECTOR)
+-- 🌌 SPACE WORLD UI (MANUAL CHAIN - FIXED DISPLAY)
 -- =====================================================
 local SpaceWorldSection = SpaceWorldTab:Section("Requirement Chain Teleport")
 
-local currentChainLabel = SpaceWorldSection:Label("Current Chain: (empty)")
-
-function buildSpaceWorldUI()
-	-- Buttons neu generieren (wichtig wegen Streaming)
-	for name, _ in pairs(spaceButtonCache) do
-		SpaceWorldSection:Button("Add to Chain: "..name, function()
-	table.insert(spaceChainList, name)
-	print("Chain:", table.concat(spaceChainList, " -> ")) -- Debug Anzeige
-end)
+local function getChainText()
+	if #spaceChainList == 0 then
+		return "Current Chain: (empty)"
+	else
+		return "Current Chain: "..table.concat(spaceChainList, " -> ")
 	end
 end
 
--- Erstes UI Build (nach Cache)
-task.delay(1, function()
-	cacheSpaceButtons()
+-- Initial Label (NICHT mit :Set, sondern neu erstellen)
+local chainLabel = SpaceWorldSection:Label(getChainText())
+
+-- Helper zum Aktualisieren (Luxware-safe)
+local function refreshChainLabel()
+	-- Neuer Label statt :Set() (fix für Luxware Bug)
+	chainLabel = SpaceWorldSection:Label(getChainText())
+end
+
+-- Buttons dynamisch (aber MANUELL auswählbar)
+local function buildSpaceWorldUI()
+	for name, _ in pairs(spaceButtonCache) do
+		SpaceWorldSection:Button("Add to Chain: "..name, function()
+			table.insert(spaceChainList, name)
+			refreshChainLabel()
+			print("[CHAIN ADDED]:", name) -- Debug im Console
+		end)
+	end
+end
+
+-- Warten bis Buttons wirklich geladen sind (SpaceWorld Streaming Fix)
+task.spawn(function()
+	repeat task.wait(0.5) until next(spaceButtonCache) ~= nil
 	buildSpaceWorldUI()
+end)
+
+SpaceWorldSection:Button("Remove Last Chain Step", function()
+	if #spaceChainList > 0 then
+		table.remove(spaceChainList, #spaceChainList)
+		refreshChainLabel()
+	end
 end)
 
 SpaceWorldSection:Button("Clear Chain", function()
 	table.clear(spaceChainList)
-	currentChainLabel:Set("Current Chain: (empty)")
+	refreshChainLabel()
 end)
 
 SpaceWorldSection:Toggle("Auto Chain Teleport", function(v)
 	autoSpaceChain = v
 end)
 
-SpaceWorldSection:Label("Use Order: Moonlite -> Marsite -> Venusite")
+SpaceWorldSection:Label("Manual Order Example:")
+SpaceWorldSection:Label("Moonlite -> Marsite -> Venusite")
