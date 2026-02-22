@@ -682,32 +682,12 @@ local function spaceStepTeleport(part)
 end
 
 -- 🔁 REQUIREMENT SAFE CHAIN EXECUTOR (FIXES MOONLITE LOSS)
+-- 🔁 CLEAN CHAIN EXECUTOR (NO MOONLITE SPAM)
 local function executeSpaceChain()
-	if #spaceChainList == 0 then return end
-
-	-- WICHTIG:
-	-- Base Button (z.B. Moonlite) wird extra oft refreshed
-	local baseName = spaceChainList[1]
-	local basePart = spaceButtonCache[baseName]
-
-	-- 1️⃣ Base Resource stabilisieren (z.B. Moonlite)
-	if basePart then
-		spaceStepTeleport(basePart)
-		spaceStepTeleport(basePart) -- doppelt = kein Verlust mehr
-	end
-
-	-- 2️⃣ Jetzt komplette Chain durchlaufen
-	for i, name in ipairs(spaceChainList) do
+	for _, name in ipairs(spaceChainList) do
 		local part = spaceButtonCache[name]
 		if part then
-			spaceStepTeleport(part)
-
-			-- 🔥 KRITISCHER FIX:
-			-- Nach jedem höheren Button kurz zurück zum Base Button
-			-- verhindert Requirement Reset (dein Venusite Problem)
-			if i > 1 and basePart then
-				spaceStepTeleport(basePart)
-			end
+			spaceStepTeleport(part) -- JEDER Button nur EINMAL
 		end
 	end
 end
@@ -777,54 +757,54 @@ HalloweenUpgradeSection:Toggle("Auto Insert Refined Candy", function(v) autoInse
 HalloweenUpgradeSection:Toggle("Auto Factorized Candy Upgrades", function(v) upgradingFactorizedCandy = v end)
 
 -- =====================================================
--- 🌌 SPACE WORLD UI (MANUAL CHAIN - FIXED DISPLAY)
+-- 🌌 SPACE WORLD UI (FINAL FIX - STABLE CHAIN DISPLAY)
 -- =====================================================
 local SpaceWorldSection = SpaceWorldTab:Section("Requirement Chain Teleport")
 
-local function getChainText()
+-- ECHTES persistentes Label (nicht neu erstellen!)
+local chainText = "Current Chain: (empty)"
+local chainLabel = SpaceWorldSection:Label(chainText)
+
+local function updateChainLabel()
 	if #spaceChainList == 0 then
-		return "Current Chain: (empty)"
+		chainText = "Current Chain: (empty)"
 	else
-		return "Current Chain: "..table.concat(spaceChainList, " -> ")
+		chainText = "Current Chain: "..table.concat(spaceChainList, " -> ")
 	end
+	
+	-- Luxware workaround: Text neu setzen über interne Label Methode
+	pcall(function()
+		chainLabel:Set(chainText)
+	end)
 end
 
--- Initial Label (NICHT mit :Set, sondern neu erstellen)
-local chainLabel = SpaceWorldSection:Label(getChainText())
-
--- Helper zum Aktualisieren (Luxware-safe)
-local function refreshChainLabel()
-	-- Neuer Label statt :Set() (fix für Luxware Bug)
-	chainLabel = SpaceWorldSection:Label(getChainText())
-end
-
--- Buttons dynamisch (aber MANUELL auswählbar)
-local function buildSpaceWorldUI()
+-- Buttons bauen (NACH Cache)
+local function buildSpaceWorldButtons()
 	for name, _ in pairs(spaceButtonCache) do
 		SpaceWorldSection:Button("Add to Chain: "..name, function()
 			table.insert(spaceChainList, name)
-			refreshChainLabel()
-			print("[CHAIN ADDED]:", name) -- Debug im Console
+			updateChainLabel()
+			print("Chain Added:", name)
 		end)
 	end
 end
 
--- Warten bis Buttons wirklich geladen sind (SpaceWorld Streaming Fix)
+-- Sicherstellen dass Buttons geladen sind (SpaceWorld Streaming Fix)
 task.spawn(function()
 	repeat task.wait(0.5) until next(spaceButtonCache) ~= nil
-	buildSpaceWorldUI()
+	buildSpaceWorldButtons()
 end)
 
 SpaceWorldSection:Button("Remove Last Chain Step", function()
 	if #spaceChainList > 0 then
 		table.remove(spaceChainList, #spaceChainList)
-		refreshChainLabel()
+		updateChainLabel()
 	end
 end)
 
 SpaceWorldSection:Button("Clear Chain", function()
 	table.clear(spaceChainList)
-	refreshChainLabel()
+	updateChainLabel()
 end)
 
 SpaceWorldSection:Toggle("Auto Chain Teleport", function(v)
