@@ -757,59 +757,191 @@ HalloweenUpgradeSection:Toggle("Auto Insert Refined Candy", function(v) autoInse
 HalloweenUpgradeSection:Toggle("Auto Factorized Candy Upgrades", function(v) upgradingFactorizedCandy = v end)
 
 -- =====================================================
--- 🌌 SPACE WORLD UI (FINAL FIX - STABLE CHAIN DISPLAY)
+-- 🌌 SPACE WORLD LAUNCHER
 -- =====================================================
-local SpaceWorldSection = SpaceWorldTab:Section("Requirement Chain Teleport")
+local SpaceWorldSection = SpaceWorldTab:Section("Chain Teleport Tool")
 
--- ECHTES persistentes Label (nicht neu erstellen!)
-local chainText = "Current Chain: (empty)"
-local chainLabel = SpaceWorldSection:Label(chainText)
+SpaceWorldSection:Button("Open Chain Teleport Window", function()
+    if game.CoreGui:FindFirstChild("ChainTP") then
+        game.CoreGui.ChainTP.Enabled = not game.CoreGui.ChainTP.Enabled
+        return
+    end
 
-local function updateChainLabel()
-	if #spaceChainList == 0 then
-		chainText = "Current Chain: (empty)"
-	else
-		chainText = "Current Chain: "..table.concat(spaceChainList, " -> ")
-	end
-	
-	-- Luxware workaround: Text neu setzen über interne Label Methode
-	pcall(function()
-		chainLabel:Set(chainText)
-	end)
+   loadstring([[
+-- =====================================================
+-- 🌌 ADVANCED CHAIN TELEPORT (DRAGGABLE WINDOW VERSION)
+-- =====================================================
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+local ButtonFolder = workspace:WaitForChild("__GAME_CONTENT")
+    :WaitForChild("Boards")
+    :WaitForChild("SpaceWorld")
+    :WaitForChild("ButtonSim")
+
+local STEP_DELAY = 0.55
+local TP_HEIGHT = 1.5
+
+local buttonCache = {}
+local chainList = {}
+local autoChain = false
+
+local function getZonePart(folder)
+    local zone = folder:FindFirstChild("ZONE_Part", true)
+    if zone and zone:IsA("BasePart") then
+        return zone
+    end
+    return nil
 end
 
--- Buttons bauen (NACH Cache)
-local function buildSpaceWorldButtons()
-	for name, _ in pairs(spaceButtonCache) do
-		SpaceWorldSection:Button("Add to Chain: "..name, function()
-			table.insert(spaceChainList, name)
-			updateChainLabel()
-			print("Chain Added:", name)
-		end)
-	end
+local function cleanName(name)
+    return name:gsub("%s*%b()", "")
 end
 
--- Sicherstellen dass Buttons geladen sind (SpaceWorld Streaming Fix)
+-- Cache Buttons (Dirtite skip)
+for _, f in ipairs(ButtonFolder:GetChildren()) do
+    local name = cleanName(f.Name)
+    if name ~= "Dirtite" then
+        local zone = getZonePart(f)
+        if zone then
+            buttonCache[name] = zone
+        end
+    end
+end
+
+local function stepTeleport(part)
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    hrp.CFrame = part.CFrame + Vector3.new(0, TP_HEIGHT, 0)
+
+    task.wait(STEP_DELAY)
+end
+
+local function executeChain()
+    for _, name in ipairs(chainList) do
+        local part = buttonCache[name]
+        if part then
+            stepTeleport(part)
+        end
+    end
+end
+
 task.spawn(function()
-	repeat task.wait(0.5) until next(spaceButtonCache) ~= nil
-	buildSpaceWorldButtons()
+    while true do
+        if autoChain and #chainList > 0 then
+            executeChain()
+        end
+        task.wait(0.05)
+    end
 end)
 
-SpaceWorldSection:Button("Remove Last Chain Step", function()
-	if #spaceChainList > 0 then
-		table.remove(spaceChainList, #spaceChainList)
-		updateChainLabel()
-	end
+-- 🖥️ DRAGGABLE UI
+local gui = Instance.new("ScreenGui")
+gui.Name = "ChainTP"
+gui.Parent = game.CoreGui
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 450)
+frame.Position = UDim2.new(0.3, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Parent = gui
+
+-- DRAG SYSTEM (SEHR SMOOTH)
+local dragging = false
+local dragInput, dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
 
-SpaceWorldSection:Button("Clear Chain", function()
-	table.clear(spaceChainList)
-	updateChainLabel()
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
 end)
 
-SpaceWorldSection:Toggle("Auto Chain Teleport", function(v)
-	autoSpaceChain = v
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
 end)
 
-SpaceWorldSection:Label("Manual Order Example:")
-SpaceWorldSection:Label("Moonlite -> Marsite -> Venusite")
+local layout = Instance.new("UIListLayout", frame)
+layout.Padding = UDim.new(0,4)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,35)
+title.Text = "🌌 Chain Teleport Tool (Draggable)"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.TextScaled = true
+
+local chainLabel = Instance.new("TextLabel", frame)
+chainLabel.Size = UDim2.new(1,0,0,40)
+chainLabel.Text = "Chain: (empty)"
+chainLabel.TextColor3 = Color3.new(1,1,1)
+chainLabel.BackgroundTransparency = 1
+chainLabel.TextWrapped = true
+
+for name, _ in pairs(buttonCache) do
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1,-6,0,30)
+    btn.Text = "Add to Chain: "..name
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    btn.TextColor3 = Color3.new(1,1,1)
+
+    btn.MouseButton1Click:Connect(function()
+        table.insert(chainList, name)
+        btn.Text = "✓ "..name
+        chainLabel.Text = "Chain: "..table.concat(chainList, " -> ")
+    end)
+end
+
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(1,-6,0,35)
+toggle.Text = "Auto Chain: OFF"
+toggle.BackgroundColor3 = Color3.fromRGB(120,50,50)
+toggle.TextColor3 = Color3.new(1,1,1)
+
+toggle.MouseButton1Click:Connect(function()
+    autoChain = not autoChain
+    toggle.Text = "Auto Chain: "..(autoChain and "ON" or "OFF")
+end)
+
+local clear = Instance.new("TextButton", frame)
+clear.Size = UDim2.new(1,-6,0,30)
+clear.Text = "Clear Chain"
+clear.BackgroundColor3 = Color3.fromRGB(80,80,80)
+clear.TextColor3 = Color3.new(1,1,1)
+
+clear.MouseButton1Click:Connect(function()
+    table.clear(chainList)
+    chainLabel.Text = "Chain: (empty)"
+end)
+]])()
+end)
