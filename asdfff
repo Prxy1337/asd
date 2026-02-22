@@ -614,11 +614,11 @@ task.spawn(function()
 end)
 
 -- =====================================================
--- 🌌 SPACE WORLD CHAIN TELEPORT (INTEGRATED)
--- Moonlite -> Marsite -> Venusite (Manual Chain System)
+-- 🌌 SPACE WORLD CHAIN TELEPORT (FIXED - DYNAMIC UI)
+-- Dirtite Fix + Selectable Chain Fix
 -- =====================================================
 
-local STEP_DELAY = 0.55 -- Requirement Registrierung (sehr wichtig)
+local STEP_DELAY = 0.6 -- Requirement Registrierung (wichtig)
 local TP_HEIGHT = 1.5
 
 local spaceButtonCache = {}
@@ -630,7 +630,6 @@ local SpaceButtonFolder = workspace:WaitForChild("__GAME_CONTENT")
 	:WaitForChild("SpaceWorld")
 	:WaitForChild("ButtonSim")
 
--- 🔍 ZONE_Part Detection (wie in deinem Screenshot)
 local function getSpaceZonePart(folder)
 	local zone = folder:FindFirstChild("ZONE_Part", true)
 	if zone and zone:IsA("BasePart") then
@@ -643,13 +642,15 @@ local function cleanSpaceName(name)
 	return name:gsub("%s*%b()", "")
 end
 
--- Cache Buttons (skip Dirtrite wie du gesagt hast)
+-- 📦 CACHE BUTTONS (JETZT MIT RICHTIGEM DIRTITE SKIP)
 local function cacheSpaceButtons()
 	table.clear(spaceButtonCache)
 
 	for _, f in ipairs(SpaceButtonFolder:GetChildren()) do
 		local name = cleanSpaceName(f.Name)
-		if name ~= "Dirtrite" then
+
+		-- RICHTIGER NAME: Dirtite (kein Button laut dir)
+		if name ~= "Dirtite" then
 			local zone = getSpaceZonePart(f)
 			if zone then
 				spaceButtonCache[name] = zone
@@ -660,31 +661,26 @@ end
 
 cacheSpaceButtons()
 
--- Falls Buttons nachladen (Streaming / Teleport zur Welt)
 SpaceButtonFolder.ChildAdded:Connect(function()
 	task.wait(0.5)
 	cacheSpaceButtons()
+	buildSpaceWorldUI() -- UI neu aufbauen wenn Buttons laden
 end)
 
--- 🧱 Stabiler Requirement Teleport (kein Resource Verlust)
+-- 🧱 STABILER REQUIREMENT TELEPORT
 local function spaceStepTeleport(part)
 	local char = player.Character
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	-- Anti Drift / Anti Fly
 	hrp.AssemblyLinearVelocity = Vector3.zero
 	hrp.AssemblyAngularVelocity = Vector3.zero
-
-	-- Direkt in Trigger Zone (wichtig für Requirements)
 	hrp.CFrame = part.CFrame + Vector3.new(0, TP_HEIGHT, 0)
 
-	-- Server muss registrieren dass du "drauf stehst"
 	task.wait(STEP_DELAY)
 end
 
--- 🔁 CHAIN EXECUTOR (Moonlite -> Marsite -> Venusite)
 local function executeSpaceChain()
 	for _, name in ipairs(spaceChainList) do
 		local part = spaceButtonCache[name]
@@ -759,26 +755,35 @@ HalloweenUpgradeSection:Toggle("Auto Insert Refined Candy", function(v) autoInse
 HalloweenUpgradeSection:Toggle("Auto Factorized Candy Upgrades", function(v) upgradingFactorizedCandy = v end)
 
 -- =====================================================
--- 🌌 SPACE WORLD UI (CHAIN TELEPORT)
+-- 🌌 SPACE WORLD UI (DYNAMIC CHAIN SELECTOR)
 -- =====================================================
 local SpaceWorldSection = SpaceWorldTab:Section("Requirement Chain Teleport")
 
-SpaceWorldSection:Label("Add Buttons in Order:")
-SpaceWorldSection:Label("Example: Moonlite -> Marsite -> Venusite")
+local currentChainLabel = SpaceWorldSection:Label("Current Chain: (empty)")
 
--- Dynamische Button Liste (aus ButtonSim)
-for name, _ in pairs(spaceButtonCache) do
-	SpaceWorldSection:Button("Add to Chain: "..name, function()
-		table.insert(spaceChainList, name)
-	end)
+function buildSpaceWorldUI()
+	-- Buttons neu generieren (wichtig wegen Streaming)
+	for name, _ in pairs(spaceButtonCache) do
+		SpaceWorldSection:Button("Add to Chain: "..name, function()
+			table.insert(spaceChainList, name)
+			currentChainLabel:Set("Current Chain: "..table.concat(spaceChainList, " -> "))
+		end)
+	end
 end
+
+-- Erstes UI Build (nach Cache)
+task.delay(1, function()
+	cacheSpaceButtons()
+	buildSpaceWorldUI()
+end)
 
 SpaceWorldSection:Button("Clear Chain", function()
 	table.clear(spaceChainList)
+	currentChainLabel:Set("Current Chain: (empty)")
 end)
 
 SpaceWorldSection:Toggle("Auto Chain Teleport", function(v)
 	autoSpaceChain = v
 end)
 
-SpaceWorldSection:Label("Current Chain updates live below:")
+SpaceWorldSection:Label("Use Order: Moonlite -> Marsite -> Venusite")
