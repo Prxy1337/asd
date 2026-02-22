@@ -681,11 +681,33 @@ local function spaceStepTeleport(part)
 	task.wait(STEP_DELAY)
 end
 
+-- 🔁 REQUIREMENT SAFE CHAIN EXECUTOR (FIXES MOONLITE LOSS)
 local function executeSpaceChain()
-	for _, name in ipairs(spaceChainList) do
+	if #spaceChainList == 0 then return end
+
+	-- WICHTIG:
+	-- Base Button (z.B. Moonlite) wird extra oft refreshed
+	local baseName = spaceChainList[1]
+	local basePart = spaceButtonCache[baseName]
+
+	-- 1️⃣ Base Resource stabilisieren (z.B. Moonlite)
+	if basePart then
+		spaceStepTeleport(basePart)
+		spaceStepTeleport(basePart) -- doppelt = kein Verlust mehr
+	end
+
+	-- 2️⃣ Jetzt komplette Chain durchlaufen
+	for i, name in ipairs(spaceChainList) do
 		local part = spaceButtonCache[name]
 		if part then
 			spaceStepTeleport(part)
+
+			-- 🔥 KRITISCHER FIX:
+			-- Nach jedem höheren Button kurz zurück zum Base Button
+			-- verhindert Requirement Reset (dein Venusite Problem)
+			if i > 1 and basePart then
+				spaceStepTeleport(basePart)
+			end
 		end
 	end
 end
@@ -765,9 +787,9 @@ function buildSpaceWorldUI()
 	-- Buttons neu generieren (wichtig wegen Streaming)
 	for name, _ in pairs(spaceButtonCache) do
 		SpaceWorldSection:Button("Add to Chain: "..name, function()
-			table.insert(spaceChainList, name)
-			currentChainLabel:Set("Current Chain: "..table.concat(spaceChainList, " -> "))
-		end)
+	table.insert(spaceChainList, name)
+	print("Chain:", table.concat(spaceChainList, " -> ")) -- Debug Anzeige
+end)
 	end
 end
 
